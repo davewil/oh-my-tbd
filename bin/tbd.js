@@ -66,6 +66,14 @@ async function runVetoCheck() {
     return allow('tbd: read-only Bash command bypasses discipline');
   }
 
+  // Q-035 / D-056: navigator subagent carve-out. The navigator's reactive review
+  // actions don't need pa-coordination — pa is the pilot's pre-declared intent.
+  // CC's hook payload includes the plugin-namespaced agent_type field (verified
+  // empirically at intent-005 spike). Fails closed if the field is absent — safe.
+  if (hookInput && hookInput.agent_type === 'oh-my-tbd:navigator') {
+    return allow('tbd: navigator subagent bypasses pending-action check (Q-035)');
+  }
+
   const projectDir = process.env.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd();
   const tbdDir = path.join(projectDir, '.tbd');
 
