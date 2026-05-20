@@ -2,15 +2,15 @@
 
 Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-20 (walking-skeleton landed)
-- **Trunk state:** main at 34363b0, pushed to origin (github.com/davewil/oh-my-tbd)
+- **Last session ended:** 2026-05-20 (walking-skeleton + D-052 soft + self-archive fix landed)
+- **Trunk state:** main at [latest], pushed to origin (github.com/davewil/oh-my-tbd)
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
 
 ## Where we are
 
-**Walking-skeleton complete.** All 6 planned batches landed in this commit sequence (after `030cb17 Bootstrap`):
+**Walking-skeleton + D-052 + self-archive fix complete.** Commit sequence (after `030cb17 Bootstrap`):
 
 | Commit | What |
 |---|---|
@@ -21,6 +21,9 @@ Working notes for resuming after a session restart. Read this first.
 | `ab56f47` | Skill specs: /oh-my-tbd:start, /oh-my-tbd:override |
 | `53e9efe` | TBD/XP/LEAN principles checklist (navigator rubric source) |
 | `34363b0` | Activate pilot as main thread via settings.json (D-049) |
+| `4737da5` | Update NEXT-SESSION.md post-walking-skeleton |
+| `736fe5a` | D-052 soft consumption tracking (Q-034) — archive-pa on PostToolUse success |
+| `[next]`  | Self-archive carve-out fix in archive-pa + NEXT-SESSION.md update for resume |
 
 **Net result:** anyone enabling the plugin (`claude --plugin-dir .` or installed) gets the full discipline: pilot is the default main agent, navigator is invocable as `oh-my-tbd:navigator`, the veto-check hook fires on every state-changing tool call, `.tbd/` orchestration substrate is freely writable per D-051, principles checklist is loaded as the navigator's rubric source.
 
@@ -30,18 +33,17 @@ Working notes for resuming after a session restart. Read this first.
 
 ---
 
-## What to do next (priority order)
+## What to do next (priority order — updated post-session-1)
 
-### 1. Implement D-052 — pending-action.json consumption tracking
-**Files:** `bin/tbd.js`, `test/hook/`
-**References:** D-052, D-043, the dogfood evidence in `.tbd/dissent-log.jsonl` (multiple `veto_raised` events from stale pa state)
-**Approach:** TDD-honest. Land a failing test first (pa is consumed on successful action; next state-changing call without fresh pa is refused). Then implement: hook archives consumed pa to `.tbd/archive/<session_id>/pa-<id>.json` after a successful pass.
-**Decisions to make in flight:** archive layout, archive-vs-mark-consumed (Q-034 — softer "warning not refusal" path is also an option per D-053).
+### 1. Reconcile Q-035 — subagent tool calls and PreToolUse hooks (non-deterministic)
+**Files:** `bin/tbd.js`, possibly `agents/navigator.md` (tool allowlist), possibly `hooks/hooks.json`
+**Discovery (session 1):** the navigator subagent's Bash to `.tbd/` is non-deterministic — sometimes refused by the hook, sometimes succeeds. This is the most fragile substrate behaviour observed. Possibly related to how Claude Code routes hooks for subagent tool calls vs main-session tool calls.
+**Approach:** investigate empirically — set up a controlled test (navigator subagent Bash to `.tbd/dissent-log.jsonl` under various pending-action states). Then choose: tighten navigator's tool allowlist (drop Bash, ship a small subagent-targeted helper), extend D-051 carve-out to cover navigator Bash, or rely on prompt-level discipline.
 
-### 2. Reconcile Q-035 — subagent tool calls and PreToolUse hooks
-**Files:** `bin/tbd.js`, possibly `agents/navigator.md` (tool allowlist)
-**Discovery:** during this session the navigator subagent used `Bash >>` to append to `.tbd/dissent-log.jsonl` despite the D-051 carve-out being Write/Edit/NotebookEdit only. This means subagent tool calls either don't fire the PreToolUse hook at all, or fire but get allowed because of how the navigator is invoked.
-**Approach:** investigate empirically — does the PreToolUse hook fire on subagent Bash? Then choose: tighten navigator's tool allowlist (drop Bash, ship a small subagent-targeted helper), or extend D-051 carve-out to cover navigator's Bash to `.tbd/`, or document the gap and rely on prompt-level discipline.
+### 2. Add negative-case test for D-052 (success=false → no archive)
+**Files:** `test/hook/test-d052-archive-on-failure.sh` (new), possibly extend `test-d052-archive-on-success.sh`
+**Why:** session-1 navigator pre-flagged this — current test only covers the success=true path. The success predicate is the load-bearing design decision and a `!== true` → `=== false` flip would not regress-detect.
+**Approach:** new shell test that sets up same fixture, pipes a hook input with `tool_response.success: false` (or absent), asserts pa is NOT moved to archive, original remains. Single small batch.
 
 ### 3. Implement Bash carve-out for D-051 (carefully)
 **Files:** `bin/tbd.js`, `test/hook/`
@@ -103,3 +105,21 @@ claude --plugin-dir .             # load the plugin in dev mode — pilot become
 - **The discipline catches real issues.** pa-004 TDD veto prevented untested production code from shipping. The carve-out fix is itself the canonical example of "fix it properly first, then resume."
 - **The navigator self-disclosed a Bash discipline-break** (pa-018) — Q-035 emerged from that. The agent prompt's anti-bypass language held up under stress.
 - **Don't add ceremony for low-risk work.** Per D-053, the `git push` after the walking skeleton landed needed no navigator review. Process serves people.
+- **D-052 self-archive lockout** (session 1 close-out): writing pa to disk triggered PostToolUse → archive-pa → removed the just-written pa → blocked subsequent non-`.tbd/` actions. Fixed by adding self-archive carve-out to runArchivePa. Recovery used a deliberate bootstrap (pa-without-id exploits the graceful no-op branch). **Future: design "discipline emergency exit" patterns** (Q-036 candidate) so substrate lockouts have a clean recovery path beyond exploiting graceful-no-op branches.
+
+## How session 1 ended (so resume reads cleanly)
+
+The session closed with the walking-skeleton + D-052 + self-archive fix all landed and pushed. The discipline is self-bootstrapping AND self-correcting. The substrate state on disk:
+
+- `.tbd/current-intent.json` — intent-002 marked `status: completed` (D-052 work unit). Next session should `/oh-my-tbd:start` a fresh intent before any work.
+- `.tbd/pending-action.json` — whatever pa was active at the final commit. After that commit's PostToolUse, archive-pa fires; with the self-archive fix in place, only non-pending-action targets get archived, so the final commit's pa (Bash) gets archived normally. State on resume: pending-action.json may be absent (cleanly consumed).
+- `.tbd/dissent-log.jsonl` — full audit trail of every veto raised/lifted across session 1. Useful reading for understanding the calibration evolution.
+- `.tbd/archive/s-2026-05-20-001/` — all consumed pa's from session 1 (audit trail).
+- `.tbd/session-state.json` — counter drift noted (vetoes_lifted=0 despite ~10 lift events). Cleanup is priority 5.
+
+To resume safely:
+
+1. Read `NEXT-SESSION.md` (this file) and `DESIGN-LOG.md` § Open questions (recent Q-033 → Q-035, plus possibly Q-036 if added).
+2. Run `bash test/hook/test-d051-tbd-bypass.sh` and `bash test/hook/test-d052-archive-on-success.sh` — both should PASS. Sanity check.
+3. Run `/oh-my-tbd:start <type> <description>` to declare a fresh intent for whatever you're tackling.
+4. Pick a priority from "What to do next" and proceed via normal pilot loop.

@@ -183,12 +183,23 @@ function isReadOnlyBash(command) {
 async function runArchivePa() {
   const hookInput = await readStdinJson();
   const toolResponse = (hookInput && hookInput.tool_response) || {};
+  const toolInput = (hookInput && hookInput.tool_input) || {};
 
   // Success predicate (explicit per D-052 design + navigator Q1):
   // archive ONLY when the tool succeeded. Pilot can retry against the
   // same declared pa on failure.
   if (toolResponse.success !== true) {
     return noop('tbd archive-pa: tool did not succeed; pa not archived');
+  }
+
+  // Self-archive carve-out: when the tool call's target IS .tbd/pending-action.json,
+  // the call updated the pa rather than consuming one. Archiving the freshly-written
+  // pa would trap the pilot in a no-pa state and block the next non-.tbd/ action.
+  // Discovered empirically post-D-052-landing; would block all subsequent work without this.
+  // Regression-covered by test/hook/test-d052-self-archive-skip.sh.
+  const targetPath = (typeof toolInput.file_path === 'string') ? toolInput.file_path : '';
+  if (targetPath.endsWith('/.tbd/pending-action.json') || targetPath.endsWith('\\.tbd\\pending-action.json')) {
+    return noop('tbd archive-pa: tool target is pending-action.json itself; skipping self-archive');
   }
 
   const projectDir = process.env.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd();
