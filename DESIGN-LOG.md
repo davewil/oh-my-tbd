@@ -69,6 +69,7 @@ Once implementation begins, major architectural commitments will split into ADRs
 | D-030 | 2026-05-19 | **Test-only and docs-only diffs are exempt** from the flag requirement, subject to a "no production-path touches" check. | User-ratified |
 | D-031 | 2026-05-19 | **Pure refactors are a distinct commit category**, not handled via the non-interaction criterion. Navigator verifies behaviour preservation. Mechanism TBD (Q-019). | User-ratified |
 | D-032 | 2026-05-19 | **Project entry points declared in `.tbd/entry-points.yaml`**, bootstrapped by auto-detect on first run with human confirmation. | User-ratified |
+| D-056 | 2026-05-20 | **Navigator subagent calls bypass pa-tool-match check (Q-035 closure).** When `hookInput.agent_type === 'oh-my-tbd:navigator'`, veto-check returns allow without checking pa.tool against actual tool. Rationale: pa is the pilot's pre-declared intent; the navigator's reactive review actions don't need pa-coordination — gating them creates recursive friction (the navigator cannot append its own `veto_lifted` entry or remove its own `veto.json` because Bash to `.tbd/` trips the very hook the navigator's contract assumes it can bypass). Empirical basis: intent-2026-05-20-005 spike (no commit) verified that CC's PreToolUse/PostToolUse hook payload reliably includes the plugin-namespaced `agent_type` field (`oh-my-tbd:pilot` vs `oh-my-tbd:navigator`). Substrate-self-exemption matches D-051/D-052 precedent. Fails closed: if CC stops populating `agent_type`, the predicate is false and the call goes through normal pa-check. Implemented commit `360d1e3` (carve-out) + TDD test `test/hook/test-q035-navigator-agent-bypass.sh` (case 1 navigator→allow, case 2 pilot→deny). Verified end-to-end by the navigator's own commit-stage review on that commit — first navigator to write `.tbd/dissent-log.jsonl` directly under the carve-out. | Dogfood-surfaced |
 
 ## Open questions
 
@@ -117,6 +118,7 @@ Once implementation begins, major architectural commitments will split into ADRs
 | Q-016 | Principle file ownership model | Resolved 2026-05-19 — see D-022 (defaults + user + project, stack/override) |
 | Q-017 | Clarifying-question constraints | Resolved 2026-05-19 — see D-026 |
 | Q-023 | Navigator-review synchronous agent invocation feasibility | Resolved 2026-05-19 — feasible via Agent tool from pilot; see D-033 |
+| Q-035 | Subagent tool calls non-deterministically bypass PreToolUse pa-tool-match check (navigator's reactive `.tbd/` writes refused by the very hook the navigator's contract assumes it can bypass; surfaced in sessions 1+2 dissent log) | Resolved 2026-05-20 — see D-056 (navigator-agent-type carve-out keyed on plugin-namespaced `agent_type` field in CC's hook payload) |
 
 ## Process notes
 
