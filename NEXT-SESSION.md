@@ -8,6 +8,59 @@ Working notes for resuming after a session restart. Read this first.
 
 ---
 
+## ▶ Next session pickup
+
+**Session-7 ended with a strategic pivot.** Every substrate fix we land surfaces another substrate need because there is no other code to test the discipline against — the dogfood loop has become recursive. **Outside-in feature work is the prioritisation function from here on.** Build the smallest top-layer skill, see what bites under real use, drop down to fix only the thing that actually bit. Don't pre-fix substrate hypothetically. The deferred queue at the bottom of this section is preserved as historical context, NOT as the active priority list.
+
+### Session-8 priority 1: `/tbd:status` walking-skeleton (Layer 1)
+
+Type: **feature** (flag-required per D-004). One declarable purpose, several files.
+
+- Register the feature flag (name is pilot's call — e.g. `tbd_status_skill`)
+- Add `skills/status/SKILL.md` following the `start` / `override` pattern
+- Skill reads `.tbd/` (current-intent, dissent-log, archive count, pending-action, veto) + git state (HEAD SHA, working-tree status, divergence from origin) and formats a one-screen dashboard
+- **When a datum is missing or drifted, output `<unknown>` or `<drifted>` rather than failing** — this is the bite-surface; visible gaps drive intent-002+ next session
+- Skill output ends with a "**Next:**" line picking the right action from the state-machine below
+- Fixture-driven test: known `.tbd/` state in → known dashboard + next-suggestion out. Each state-machine row becomes a test case.
+
+### Suggestion state-machine (first-match wins, evaluated top-to-bottom)
+
+| Detected state | Next suggestion |
+|---|---|
+| No `.tbd/` directory | `/tbd:init` (when implemented) — bootstrap project |
+| `.tbd/veto.json` exists with `status: standing` | Address the standing veto: revise the pa, or file dissent in `.tbd/dissent-log.jsonl` |
+| `.tbd/pending-action.json` exists & no standing veto | Invoke the navigator subagent for review |
+| No current-intent (or `status: completed`) & working tree dirty | `/tbd:start <type> "<description>"`, then declare pa for the changes |
+| No current-intent & working tree clean & local ahead of origin | `git push origin main` |
+| Current-intent open & working tree clean & no pending-action | Declare next pa, or close intent |
+| Current-intent open & working tree dirty & no pending-action | Declare pa for the changes |
+| Everything clean, intent closed, nothing ahead | `/tbd:start` next work-unit (or stop) |
+| Unknown state (none of above match) | "Unknown state — manual investigation needed" + raw state dump |
+
+Future skills (`/tbd:flag`, `/tbd:audit`, `/tbd:retro`, `/tbd:doctor`, etc.) plug into new rows as they land.
+
+### Expected bites — prioritised by what actually surfaces
+
+1. **Divergence age has no single source.** Branch-age + uncommitted-WIP-age + stash-age per D-050 need separate computation. Status shows `<unknown>` first run → drop down → implement divergence-age helper.
+2. **`session-state.json` counters are drifted.** Status shows `vetoes_raised: 0` while archive shows dozens → drop down → fix counter maintenance.
+3. **No canonical batch-size definition.** Working-tree diff lines? pa-cycle count? Status forces the choice → drop down → pick one and document.
+4. **Skill loading for skills beyond `start` / `override` may be untested** at the CC platform layer. If `/tbd:status` doesn't invoke → drop down → debug skill registration.
+
+### Deferred — pursue only if real feature use surfaces a concrete need
+
+Preserved as historical context, NOT the active queue. The active queue is the bites above as they actually appear.
+
+- **Principle propagation** (was intent-018 priority-0) — codify small-batches=size+reviewability-not-singularity in `principles/principles.md` and the navigator rubric. Currently lives only in `0785a38`'s commit body. Pursue when the navigator next re-litigates the principle.
+- **action-trace.jsonl population** (was priority 1) — `bin/tbd.js` PostToolUse handler with handler-ordering + carve-out coverage. Will be needed for retro/audit features but NOT for `/tbd:status` itself.
+- **TS migration** (D-038, was priority 2) — chore-shaped; revisit when feature surface is larger.
+- **Bash carve-out for D-051** (was priority 3) — read-only-with-redirect Bash refused; minor pilot UX friction.
+- **session-state.json counter maintenance** (was priority 4) — likely surfaces as the first bite from `/tbd:status` above.
+- **current-intent.json cleanup convention** (was priority 5) — convention-by-precedent across sessions 2-7; codify only when a future skill needs to consume the lifecycle deterministically.
+- **Intent-011 follow-on spike** Q-039 + Q-040 (was priority 6) — gated on fresh-session capability; not blocking anything currently.
+- **Q-041 substrate anomaly** (opened intent-018) — pa-archived-without-Edit-firing; investigate when action-trace handler-ordering work touches the same code site.
+
+---
+
 ## Where we are
 
 **Walking-skeleton + D-052/D-056/D-057/D-058/D-059/D-060 all landed; substrate-state model is honest end-to-end on CC's event-firing semantics AND the implementation matches those assumptions; action-trace.jsonl population is the unblocked next work-unit (now priority 1 after intent-010/intent-013 closure).** Commit sequence (after `030cb17 Bootstrap`):
