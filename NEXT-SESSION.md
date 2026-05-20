@@ -40,6 +40,27 @@ Working notes for resuming after a session restart. Read this first.
 
 ---
 
+## Operating-mode calibration (project-level, logged 2026-05-20 end of session 6)
+
+Two operating modes acknowledged after the user observed feature-landing pace is too slow for adoption-viability. **Currently in Mode A.** Sessions 1–6 cadence (≈1 commit per session, heavy navigator ceremony, much time on substrate-of-substrate) is accepted FOR THIS PHASE; it would NOT be accepted once the plugin is the deliverable.
+
+### Mode A — bootstrap (current)
+Rigour over throughput. The dogfood loop catches real bugs (D-057, D-058, D-059, intent-013's D-056-symmetry-gap) and the navigator vetoes catch real overclaims (intent-013 pa-091: orphan `toolResponse` binding flagged as "completion of change 2, not separate cleanup"). Session-level cadence (1 commit per session, 5–17 pa-cycles per commit) is accepted. **Finite scope:** make the discipline machinery itself trustworthy. Don't optimise for feature pace.
+
+### Mode B — deliverable (future)
+The plugin must land features at human-developer pace or no one adopts it. Realistic batch ceilings, lighter ceremony on routine work, automatic counters + trace so substrate maintenance isn't manual, complete carve-out matrix so a normal feature commit doesn't take 17 pa-cycles. **Mode-B viability is the gate on broader distribution.**
+
+### Transition criterion (Mode A → Mode B)
+Worth pinning when one of us spots the moment. All four required:
+1. `archive-pa` + `action-trace.jsonl` + `session-state.json` counters all working end-to-end (so substrate is honest without pilot maintenance). `archive-pa` shipped intent-013 today; action-trace + counters remain priority work.
+2. Divergence-cap + batch-cap actually read by code (so the discipline enforces its named primitives, not just its ceremony).
+3. Navigator per-pa friction sub-30-seconds on routine work (so ceremony doesn't dominate). Today's average is ≈90s per navigator review.
+4. Successful "outside" test: take a small unrelated repo, plug in oh-my-tbd, deliver one real feature, measure friction. This is the dispositive evidence Mode B is real and not just self-reported.
+
+**Until met, sessions look like today. After, they shouldn't.** If a future session catches itself producing one substantive commit per 3+ hours of work AFTER the four criteria above are met, surface immediately — that's a regression from Mode B.
+
+---
+
 ## What to do next (priority order — updated post-session-5)
 
 ### 1. Replace synthetic D-052 test fixture AND drop the `bin/tbd.js:199` success predicate in one commit (intent-010, BROADENED)
