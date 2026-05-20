@@ -1,0 +1,31 @@
+# Node
+node_modules/
+*.log
+npm-debug.log*
+
+# Build artefacts (TypeScript output when added)
+dist/
+
+# Local Claude Code session traces (not project code)
+.nwave/
+.omc/
+.remember/
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .tbd/ runtime state — per D-022, only commit static config
+.tbd/current-intent.json
+.tbd/session-state.json
+.tbd/pending-action.json
+.tbd/veto.json
+.tbd/navigator-questions.jsonl
+.tbd/pilot-responses.jsonl
+.tbd/action-trace.jsonl
+.tbd/dissent-log.jsonl
+.tbd/overrides.jsonl
+.tbd/handoff-*.json
+.tbd/STATUS.md
+.tbd/archive/

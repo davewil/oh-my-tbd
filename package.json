@@ -1,0 +1,15 @@
+{
+  "name": "oh-my-tbd",
+  "version": "0.0.1",
+  "description": "Trunk-Based Development discipline for Claude Code",
+  "private": true,
+  "bin": {
+    "tbd": "./bin/tbd.js"
+  },
+  "scripts": {
+    "tbd": "node ./bin/tbd.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
