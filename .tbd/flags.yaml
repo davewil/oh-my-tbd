@@ -1,0 +1,14 @@
+version: 1
+flag_system: none              # walking-skeleton has no provider; presence of skills/<name>/SKILL.md acts as the gate (Layer 1)
+# When a real provider lands (D-038 / Mode-B), set flag_system to one of:
+#   none | growthbook | launchdarkly | unleash | configcat | custom
+
+flags:
+  tbd_status_skill:
+    created: 2026-05-21
+    created_for_intent: intent-2026-05-21-002
+    status: active             # active | retiring | removed
+    targeting_summary: "0% rollout — gated by presence of skills/status/SKILL.md (Layer 1 walking-skeleton convention)"
+    call_sites: []             # populated in a subsequent pa when skills/status/SKILL.md lands
+    owner: oh-my-tbd
+    # retire_by intentionally omitted — walking-skeleton; revisit at Mode B transition
