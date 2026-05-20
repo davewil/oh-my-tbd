@@ -190,15 +190,29 @@ function isReadOnlyBash(command) {
 
 async function runArchivePa() {
   const hookInput = await readStdinJson();
-  const toolResponse = (hookInput && hookInput.tool_response) || {};
   const toolInput = (hookInput && hookInput.tool_input) || {};
 
-  // Success predicate (explicit per D-052 design + navigator Q1):
-  // archive ONLY when the tool succeeded. Pilot can retry against the
-  // same declared pa on failure.
-  if (toolResponse.success !== true) {
-    return noop('tbd archive-pa: tool did not succeed; pa not archived');
+  // D-056 symmetry: navigator subagent carve-out for archive-pa. The
+  // navigator's reactive review tool calls (e.g. Write to dissent-log
+  // on veto_lifted / veto_raised) should not consume the pilot's pa —
+  // pa is the pilot's pre-declared intent for the NEXT substantive
+  // action; the navigator is observing, not executing. Mirrors the
+  // veto-check carve-out at line 73 verbatim. Empirically discovered
+  // when pa-082 / pa-083 / pa-086 were consumed by their own navigator
+  // reviews in intent-2026-05-20-013 (after pa-081 dropped the masking
+  // predicate). Regression-covered by test-q036-navigator-bypass-in-archive-pa.sh.
+  if (hookInput && hookInput.agent_type === 'oh-my-tbd:navigator') {
+    return noop('tbd archive-pa: navigator subagent bypasses pa consumption (D-056 symmetry)');
   }
+
+  // Note: no success predicate. Per D-058 (intent-2026-05-20-011 spike, n=4 corpus
+  // across Edit/Write/Bash + 2 distinct Bash failure modes), CC PostToolUse fires
+  // only on tool success — the failure branch was provably unreachable. Per D-057,
+  // real CC payloads also have no `tool_response.success` field, so the prior
+  // `toolResponse.success !== true` predicate was failing-closed on the production
+  // shape and silently breaking archive-pa since D-052 landed. Removed under
+  // intent-2026-05-20-013; regression-covered by test-d052-archive-on-success.sh
+  // (captured-real-shape Edit payload fixture).
 
   // Self-archive carve-out: when the tool call's target IS .tbd/pending-action.json,
   // the call updated the pa rather than consuming one. Archiving the freshly-written
