@@ -1,5 +1,5 @@
 {
-  "description": "oh-my-tbd PreToolUse veto check — the discipline backstop. Per D-014, D-034, D-043, D-047, D-048.",
+  "description": "oh-my-tbd hooks — PreToolUse veto check (D-014, D-034, D-043, D-047, D-048) + PostToolUse archive-pa for D-052 single-shot consumption tracking (soft per Q-034 / D-053).",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,18 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PLUGIN_ROOT}/bin/tbd.js", "hook", "veto-check"]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/bin/tbd.js", "hook", "archive-pa"]
           }
         ]
       }

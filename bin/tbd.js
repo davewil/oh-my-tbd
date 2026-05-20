@@ -39,11 +39,15 @@ if (verb === 'hook' && name === 'veto-check') {
   runVetoCheck()
     .then((decision) => emit(decision))
     .catch((err) => emit(allow('tbd veto-check: internal error — ' + redact(err && err.message ? err.message : String(err)))));
+} else if (verb === 'hook' && name === 'archive-pa') {
+  runArchivePa()
+    .then((result) => emit(result))
+    .catch((err) => emit(noop('tbd archive-pa: internal error — ' + redact(err && err.message ? err.message : String(err)))));
 } else if (verb === 'version' || verb === '--version' || verb === '-v') {
   process.stdout.write('oh-my-tbd 0.0.1 (walking-skeleton)\n');
   process.exit(0);
 } else {
-  process.stdout.write('oh-my-tbd CLI — available subcommands: `hook veto-check`, `version`.\n');
+  process.stdout.write('oh-my-tbd CLI — available subcommands: `hook veto-check`, `hook archive-pa`, `version`.\n');
   process.exit(0);
 }
 
@@ -159,6 +163,74 @@ function isReadOnlyBash(command) {
   }
 
   return READ_ONLY_BASH_VERBS.has(verb);
+}
+
+// ---------- archive-pa (D-052 soft per Q-034) ----------
+//
+// PostToolUse hook handler: when the just-completed tool call succeeded
+// (hook_input.tool_response.success === true), move the consumed
+// .tbd/pending-action.json to .tbd/archive/<session_id>/pa-<id>.json and
+// remove the original. This makes pa truly single-shot: the next state-
+// changing call requires a fresh pa (the existing PreToolUse skip-detection
+// catches "no pa on disk"), and the audit trail of consumed pa's is preserved
+// in .tbd/archive/.
+//
+// Per D-053 baseline-not-doctrine: this is a soft variant. Failures (missing
+// pa, missing session-state, write errors) are silent no-ops, not refusals.
+// The navigator catches semantic drift at next review; the hook only handles
+// the success path.
+
+async function runArchivePa() {
+  const hookInput = await readStdinJson();
+  const toolResponse = (hookInput && hookInput.tool_response) || {};
+
+  // Success predicate (explicit per D-052 design + navigator Q1):
+  // archive ONLY when the tool succeeded. Pilot can retry against the
+  // same declared pa on failure.
+  if (toolResponse.success !== true) {
+    return noop('tbd archive-pa: tool did not succeed; pa not archived');
+  }
+
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd();
+  const tbdDir = path.join(projectDir, '.tbd');
+
+  if (!fs.existsSync(tbdDir)) {
+    return noop('tbd archive-pa: project not initialised (no .tbd directory)');
+  }
+
+  const pendingPath = path.join(tbdDir, 'pending-action.json');
+  if (!fs.existsSync(pendingPath)) {
+    return noop('tbd archive-pa: no pending-action to archive');
+  }
+
+  const pending = readJson(pendingPath);
+  if (!pending || !pending.id) {
+    return noop('tbd archive-pa: pending-action unreadable or missing id');
+  }
+
+  const sessionState = readJson(path.join(tbdDir, 'session-state.json'));
+  const sessionId = (sessionState && sessionState.session_id) || 'unknown-session';
+
+  const archiveDir = path.join(tbdDir, 'archive', sessionId);
+  try {
+    fs.mkdirSync(archiveDir, { recursive: true });
+    const archivePath = path.join(archiveDir, pending.id + '.json');
+    fs.copyFileSync(pendingPath, archivePath);
+    fs.unlinkSync(pendingPath);
+    return noop('tbd archive-pa: archived ' + pending.id + ' to ' + archivePath);
+  } catch (_err) {
+    return noop('tbd archive-pa: archive move failed; pa remains in place');
+  }
+}
+
+function noop(reason) {
+  // PostToolUse informational output — no permissionDecision needed.
+  return {
+    hookSpecificOutput: {
+      hookEventName: 'PostToolUse',
+      reason: reason,
+    },
+  };
 }
 
 // D-051: precise carve-out for Write/Edit/NotebookEdit targeting .tbd/. Bash is intentionally
