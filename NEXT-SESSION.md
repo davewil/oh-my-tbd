@@ -2,15 +2,15 @@
 
 Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-20 session-5 (intent-012 ratified intent-011 dual-probe spike findings: D-058 pinned [Q-038 resolved — PostToolUse fires only on success, n=4 corpus]; D-059 pinned [Q-036 resolved — PostToolUseFailure is a distinct CC event]; Q-039 + Q-040 opened; intent-010 scope broadened to bundle fixture-replacement + predicate-drop in one commit)
-- **Trunk state:** main at `b6a37b6` (DESIGN-LOG ratification, session-5 commit 1) with this NEXT-SESSION.md update landing as session-5 commit 2 immediately after — both pushed to origin (github.com/davewil/oh-my-tbd); reader can `git log -12` from session-5 commit 2 for the full chain back to session-4's `515f2c9`
+- **Last session ended:** 2026-05-20 session-6 (three intents, four commits: intent-013 production fix `dd03552` restoring D-052 archive-pa on real CC payloads via D-057 fixture replacement + D-058 predicate drop + D-056 symmetry-gap closure; intent-014 docs `ca24bcc` logging Mode A / Mode B operating-mode calibration; intent-015 docs pair `e21af40` + `<this commit>` ratifying D-060 and restructuring the priority queue. `.tbd/archive/` now exists on disk for the first time across the project's history as a direct consequence of intent-013.)
+- **Trunk state:** main at `e21af40` (D-060 ratification, intent-015 commit A) with this NEXT-SESSION.md update landing as intent-015 commit B immediately after — both pushed to origin (github.com/davewil/oh-my-tbd); reader can `git log -15` from intent-015 commit B for the full chain back to session-4's `515f2c9`
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
 
 ## Where we are
 
-**Walking-skeleton + D-056 + D-057/D-058/D-059 ratification all landed; substrate-state model is now honest end-to-end on CC's event-firing semantics; intent-010 fixture+predicate-drop fix is the immediate next work-unit (now bundled into one commit thanks to Q-038 resolution).** Commit sequence (after `030cb17 Bootstrap`):
+**Walking-skeleton + D-052/D-056/D-057/D-058/D-059/D-060 all landed; substrate-state model is honest end-to-end on CC's event-firing semantics AND the implementation matches those assumptions; action-trace.jsonl population is the unblocked next work-unit (now priority 1 after intent-010/intent-013 closure).** Commit sequence (after `030cb17 Bootstrap`):
 
 | Commit | What |
 |---|---|
@@ -30,13 +30,17 @@ Working notes for resuming after a session restart. Read this first.
 | `4b93fda` | **(session 3)** Docs close-out for session 3 — D-056 ratified in DESIGN-LOG, Q-035 marked resolved, NEXT-SESSION priority queue updated to 4 items |
 | `515f2c9` | **(session 4)** intent-009 docs ratifying intent-008 spike findings — D-057 (archive-pa silent-broken since D-052 landed), Q-036 (PostToolUseFailure subscription), Q-037 (session_id namespace), Q-038 (does PostToolUse fire on failure? n=1); NEXT-SESSION priority queue restructured to 7 items. **No prior session-4 commit** — intent-008 was a commit-less instrumentation spike per design |
 | `b6a37b6` | **(session 5)** intent-012 part 1 — DESIGN-LOG.md ratification of intent-011 spike findings: D-058 (Q-038 resolved, PostToolUse fires only on success, n=4 corpus across Edit/Write/Bash + 2 Bash failure modes), D-059 (Q-036 resolved, PostToolUseFailure is a distinct CC event), Q-036 + Q-038 moved to resolved table, Q-039 (mid-session hooks.json edits don't reload until session-restart) + Q-040 (Edit-failure PostToolUseFailure variant unknown) opened. Intent-011 itself was a commit-less dual-probe spike per design (intent-005/008 precedent). |
-| `<this commit>` | **(session 5)** intent-012 part 2 — NEXT-SESSION.md restructure: header pointer updated, commit table extended, priority queue restructured (intent-010 now broadens to fixture + predicate-drop in one commit; new priority 7 = intent-011-follow-on for Q-039/Q-040), open-decisions section reconciled, Session-5 progress section appended. Per-file-per-commit split (vs bundling DESIGN-LOG.md + NEXT-SESSION.md in one commit) chosen per pa-073 navigator first-remedy — disambiguates the cumulative-vs-per-pa-delta diff_summary convention. |
+| `5ee090a` | **(session 5)** intent-012 part 2 — NEXT-SESSION.md restructure post-D-058/D-059. Per-file-per-commit split (vs bundling DESIGN-LOG.md + NEXT-SESSION.md in one commit) per pa-073 navigator first-remedy precedent. |
+| `dd03552` | **(session 6)** intent-013 — `fix: restore D-052 archive-pa for real CC payloads + close D-056 symmetry gap`. Five atomic changes bundled: (1) `test-d052-archive-on-success.sh` fixture swapped from synthetic to captured-real CC Edit PostToolUse payload (per D-057); (2) `bin/tbd.js` dropped `tool_response.success !== true` predicate + its orphan local binding (per D-058); (3) NEW `test-q036-navigator-bypass-in-archive-pa.sh` RED→GREEN regression test; (4) `bin/tbd.js` added navigator-agent-type carve-out at top of `runArchivePa` (D-060 candidate, ratified in `e21af40`); (5) `test-d052-archive-on-failure.sh` DELETED (asserted unreachable failure-path per D-058; test-of-unreachable-code is dishonesty per session-4 fixture-honesty lesson). 17 pa-cycles across implementation. All 5 hook tests PASS post-fix. `.tbd/archive/` finally exists on disk. |
+| `ca24bcc` | **(session 6)** intent-014 — `docs: log Mode A / Mode B operating-mode calibration in NEXT-SESSION`. Single-file +21/-0 docs commit logging the project-level operating-mode framework (Mode A bootstrap = rigour over throughput, current; Mode B deliverable = human-developer pace, future) and the four transition criteria. Surfaces feature-landing pace concern explicitly for resume across sessions. 3 pa-cycles, 0 vetoes. |
+| `e21af40` | **(session 6)** intent-015 commit A — `docs: pin D-060 — archive-pa navigator-agent-type carve-out (D-056 symmetry partner)`. Single +1/-0 row in DESIGN-LOG.md's Pinned-decisions table ratifying the D-060 candidate forecast in dd03552's commit body. D-060 is the design-record landing of dd03552 change 4 (navigator agent_type bypass in runArchivePa); empirical basis pa-082/083/086 visible in `.tbd/archive/s-2026-05-20-001/`. Fails closed: degraded-but-not-broken if `agent_type` missing. |
+| `<this commit>` | **(session 6)** intent-015 commit B — NEXT-SESSION.md restructure: header pointers updated to session-6, commit table extended with the four session-6 rows, "Where we are" Net-result paragraph updated (intent-010/intent-013 done → priority queue collapses 7→6; `.tbd/archive/` now exists on disk), priority queue restructured (action-trace.jsonl population promoted to priority 1), session-6 progress block appended per session-5 template. Per-file-per-commit split per session-5 pa-073 first-remedy precedent. |
 
-**Net result:** the discipline machinery's CC-event-firing assumptions are now empirically grounded end-to-end. Session-4 established that real CC PostToolUse payloads have no `success` field (D-057); session-5 added that CC's PostToolUse simply doesn't fire on tool failure at all (D-058, n=4 corpus across 3 tool classes) and that the failure side is served by a distinct `PostToolUseFailure` event subscribers can register for (D-059). Consequence: archive-pa's `tool_response.success !== true` predicate is provably unreachable on failure paths and can be dropped in the same commit as intent-010's fixture-replacement (one fewer "defence in depth" branch the test corpus has to characterise). `.tbd/archive/` still doesn't exist on disk pending intent-010's actual landing. Plugin still wires correctly (pilot is default main agent; navigator invocable; veto-check fires; D-051/D-056 carve-outs honoured); intent-010 (now bundled feat) is the unblocked next work-unit.
+**Net result:** intent-013 closes the load-bearing substrate-honesty bug-trio that sessions 4–5 mapped (D-057 fixture-vs-reality mismatch, D-058 PostToolUse-fires-only-on-success characterisation, D-056 navigator-bypass symmetry gap). `.tbd/archive/` now exists on disk for the first time across the project's history — production archive-pa fires on real CC payloads. The discipline machinery's CC-event-firing assumptions are now empirically grounded end-to-end AND the implementation matches those assumptions. Plugin still wires correctly (pilot is default main agent; navigator invocable; veto-check fires; D-051/D-056/D-060 substrate carve-outs honoured). The priority queue collapses with intent-010/intent-013 done; **action-trace.jsonl population (was priority 2) is now priority 1**. Intent-014 layered the operating-mode calibration (Mode A bootstrap / Mode B deliverable + four transition criteria) as a project-level lens for the post-substrate-completion phase.
 
-**Decisions added this session:** D-058 (Q-038 resolved — CC `PostToolUse` fires only on tool success; n=4 corpus across Edit/Write/Bash with 2 distinct Bash failure modes via intent-011 dual-probe spike; unblocks intent-010's predicate-drop bundle). D-059 (Q-036 resolved — `PostToolUseFailure` is a distinct CC event subscribers can register for; confirmed at OMC-reminder layer n=3 for Write+Bash failures; Edit-failure case ambiguous → Q-040; mid-session subscription reload mechanism unknown → Q-039). Session-5 dogfood note: where session-4 attempted D-058 and got downgraded to Q-038 on n=1 evidence (pa-057 sustained-then-lifted veto), session-5's n=4 corpus cleared the same navigator's bar for pinning. The calibration is "evidence proportional to claim weight," not "always downgrade behavioural observations."
+**Decisions added this session:** D-060 (archive-pa navigator-agent-type carve-out, D-056 symmetry partner; ratifies dd03552 change 4 on the design record; empirical basis pa-082/083/086 consumed by their own navigator reviews visible in `.tbd/archive/s-2026-05-20-001/`; fails-closed degraded-but-not-broken if `agent_type` missing).
 
-**Open questions opened this session:** Q-039 (CC loads `hooks.json` at session-start; mid-session matcher additions don't take effect until session restart — empirically confirmed by intent-011 probe-2 PostToolUseFailure matcher being on-disk but never invoked; operationally important for action-trace impl). Q-040 (Edit-failure variant of D-059 — Edit failure produced no OMC-reminder layer `PostToolUseFailure:Edit` despite confirmed failure; unclear if event-not-fired or fired-but-omitted-from-reminder-layer; gated on Q-039 for fresh-session matcher test).
+**Open questions opened this session:** None. Intent-015 is pure ratification of intent-013's already-landed implementation; no new design uncertainty surfaced. Q-039 and Q-040 remain open from session 5.
 
 ---
 
@@ -61,42 +65,37 @@ Worth pinning when one of us spots the moment. All four required:
 
 ---
 
-## What to do next (priority order — updated post-session-5)
+## What to do next (priority order — updated post-session-6)
 
-### 1. Replace synthetic D-052 test fixture AND drop the `bin/tbd.js:199` success predicate in one commit (intent-010, BROADENED)
-**Files:** `test/hook/test-d052-archive-on-success.sh`, `test/hook/test-d052-archive-on-failure.sh`, `bin/tbd.js` (predicate at line 199 — n.b. line may have shifted by other carve-out edits, search rather than hard-code).
-**References:** D-057, D-058. Session-4 had scoped intent-010 to fixture-replacement only because Q-038 was n=1. Session-5's intent-011 spike resolved Q-038 (n=4 corpus, D-058): CC PostToolUse fires only on tool success, so the predicate at `bin/tbd.js:199` is provably never invoked on failure paths and can be dropped without functional change. Both changes belong in one commit because the test-fixture swap forces the predicate behaviour question, and answering it with predicate-drop is the honest single-step resolution.
-**Approach (Outside-In TDD):** (a) re-capture a real-CC PostToolUse Edit payload via the established TEMP appendFileSync pattern (one Edit triggers it; /tmp/post-tooluse-payload.log is volatile across sessions); (b) swap the synthetic fixture (`tool_response: {"success": true}`) for the real-shape payload in `test-d052-archive-on-success.sh`; (c) confirm test FAILS (RED) against current predicate-retained `bin/tbd.js` — proves fixture and predicate are now in conversation; (d) drop the `tool_response.success !== true` early-return at `bin/tbd.js:199`; (e) confirm test PASSES (GREEN) and existing `test-d052-archive-on-failure.sh` still passes (per D-058, failure payloads never reach PostToolUse so the failure-test now relies on CC's event-firing semantics instead of our predicate — bookmark this as a small fixture-honesty TODO if test-d052-archive-on-failure.sh's fixture also uses synthetic `success: false` shape); (f) run all hook tests; (g) commit. Per `principles/principles.md`/TDD, RED-before-GREEN is required because this is production-code change in a `feat`-shaped work-unit.
-
-### 2. action-trace.jsonl population (intent-013, was priority 3)
+### 1. action-trace.jsonl population (was priority 2 — promoted)
 **Files:** `bin/tbd.js` (PostToolUse path)
 **Reference:** D-018, COMPONENTS.md, plus session-4 design-fork resolutions from advisor synthesis.
-**Approach:** when veto-check returns allow AND PostToolUse fires (i.e. tool succeeded per current understanding pending Q-038), append a single line to `.tbd/action-trace.jsonl` capturing tool, per-tool args (`file_path` for Edit/Write, `command_redacted` via existing `redact()` for Bash), `pending_action_ref` (read from pa file before archive-pa consumes it — see handler-ordering question in original advisor synthesis), `session_id`, `tool_use_id`, `agent_type`, timestamp, decision. Coverage includes carve-out paths (D-051 substrate writes, D-056 navigator actions) with `pending_action_ref: null` flagging them — gating on "pa existed" loses visibility into exactly the carve-out cases the discipline lets through. Q-025 (rotation) deferred: add TODO comment near append site, real growth data after a few sessions decides threshold.
+**Approach:** when veto-check returns allow AND PostToolUse fires (i.e. tool succeeded per D-058), append a single line to `.tbd/action-trace.jsonl` capturing tool, per-tool args (`file_path` for Edit/Write, `command_redacted` via existing `redact()` for Bash), `pending_action_ref` (read from pa file before archive-pa consumes it — see handler-ordering question in original advisor synthesis), `session_id`, `tool_use_id`, `agent_type`, timestamp, decision. Coverage includes carve-out paths (D-051 substrate writes, D-056/D-060 navigator actions) with `pending_action_ref: null` flagging them — gating on "pa existed" loses visibility into exactly the carve-out cases the discipline lets through. Q-025 (rotation) deferred: add TODO comment near append site, real growth data after a few sessions decides threshold. PostToolUseFailure subscription (per D-059) deferrable — Edit-failure coverage gap can ship with TODO per Q-040.
 
-### 3. TS migration kickoff (per D-038, was priority 4)
+### 2. TS migration kickoff (per D-038, was priority 3)
 **Files:** `src/` (currently empty placeholder), `package.json` (currently absent), `bin/` (compiled output)
 **References:** D-038 pinned; user surfaced in session 4 that typed `HookInput`/`ToolResponse` against real CC payload shapes (captured for success cases in `/tmp/post-tooluse-payload.log`, and now corroborated for failure-event shapes via intent-011 spike) would have prevented D-057 at compile time. Walking-skeleton JS was bootstrap simplicity; substrate semantics are now honest enough to be worth typing.
 **Approach:** stand up `tsc` build chain, output to `bin/`. Define `HookInput` / `ToolResponse` / `PendingAction` / `Veto` / `SessionState` types from captured real payloads (not from SCHEMAS.md idealised examples). Port `bin/tbd.js` line-by-line preserving behaviour — every hook test must still pass. Per D-053, a chore-shaped work-unit; not blocking other features.
 
-### 4. Bash carve-out for D-051 (was priority 5; was session-3 priority 1)
+### 3. Bash carve-out for D-051 (was priority 4)
 **Files:** `bin/tbd.js`, `test/hook/`
-**References:** D-051 deferred-Bash work; D-056 reduced pressure (navigator was main `.tbd/`-Bash caller, now bypassed cleanly). Demoted from #1 because session-4 discoveries (D-057, Q-038) and session-5 ratifications (D-058, D-059) are higher-leverage. Remaining motivation: pilot's read-only-with-redirect Bash (e.g. `cat foo >> .tbd/log.jsonl`) is still refused by `isReadOnlyBash`.
+**References:** D-051 deferred-Bash work; D-056/D-060 reduced pressure (navigator was main `.tbd/`-Bash caller, now bypassed cleanly across both runVetoCheck and runArchivePa). Remaining motivation: pilot's read-only-with-redirect Bash (e.g. `cat foo >> .tbd/log.jsonl`) is still refused by `isReadOnlyBash`.
 **Approach:** extract `>`/`>>` redirect targets from command text rather than regex-over-text. Still heuristic but precise. TDD-honest: failing tests for true positives (`echo X > .tbd/foo`) and true negatives (`echo ".tbd/ string" >> CHANGELOG.md`).
 
-### 5. session-state.json counter maintenance (was priority 6)
+### 4. session-state.json counter maintenance (was priority 5)
 **Files:** `bin/tbd.js`, possibly skills' SKILL.md content for orchestration
-**Reference:** the navigator surfaced this drift across multiple session reviews (`vetoes_lifted` stayed at 0 while dissent log accumulated). Session-4 found it still at `s-2026-05-20-001` while sessions 2-4 had run; session-5 status TBD (likely still drifted). Likely subsumed by Q-037 resolution (session_id namespace decision).
+**Reference:** the navigator surfaced this drift across multiple session reviews (`vetoes_lifted` stayed at 0 while dissent log accumulated). Session-4 found it still at `s-2026-05-20-001` while sessions 2-4 had run; session-6 status TBD (likely still drifted). Likely subsumed by Q-037 resolution (session_id namespace decision).
 
-### 6. current-intent.json cleanup convention (was priority 7)
-**Reference:** the navigator surfaced repeatedly that current-intent.json drifted from the actual work as batches progressed. Conventions to decide: when to re-declare, when to close out (delete? archive? mark complete?), how intent transitions propagate to pa. Sessions 2-5 pattern: each work-unit re-declared (intent-003 test, intent-004 docs, intent-005 chore spike, intent-006 feat, intent-007 docs, intent-008 chore spike, intent-009 docs, intent-010 chore spike, intent-011 chore spike, intent-012 docs) and closed with `completion_summary` field. Worked cleanly but is convention-by-precedent rather than codified.
+### 5. current-intent.json cleanup convention (was priority 6)
+**Reference:** the navigator surfaced repeatedly that current-intent.json drifted from the actual work as batches progressed. Conventions to decide: when to re-declare, when to close out (delete? archive? mark complete?), how intent transitions propagate to pa. Sessions 2-6 pattern: each work-unit re-declared (intent-003 test, intent-004 docs, intent-005 chore spike, intent-006 feat, intent-007 docs, intent-008 chore spike, intent-009 docs, intent-010 chore spike, intent-011 chore spike, intent-012 docs, intent-013 fix, intent-014 docs, intent-015 docs) and closed with `completion_summary` field. Worked cleanly but is convention-by-precedent rather than codified.
 
-### 7. NEW: Intent-011 follow-on spike — resolve Q-039 + Q-040 (gated on fresh-session capability)
+### 6. Intent-011 follow-on spike — resolve Q-039 + Q-040 (was priority 7; gated on fresh-session capability)
 **Files:** `hooks/hooks.json` (TEMP matcher additions, revertable), `bin/tbd.js` (TEMP instrumentation, revertable), test fixtures.
 **References:** Q-039 (CC loads hooks.json at session-start, mid-session edits don't reload), Q-040 (does CC fire PostToolUseFailure for Edit failures or only Write/Bash?). Both opened by intent-011 spike (session-5). Resolution unblocks safe action-trace coverage of failure events and decides whether a hot-reload mechanism exists.
 **Approach (two sub-spikes, both gated on Q-039 own diagnosis — must start a FRESH session for the matcher additions to take effect):**
 - Q-039 sub-spike: try documented mechanisms in order — `/hooks` slash command if available; plugin reload command if any; environment variable triggers; finally session-restart as the baseline. Observe whether each forces hooks.json to be re-read mid-session by adding a sentinel matcher block and triggering its event.
 - Q-040 sub-spike: in a fresh session, register a `PostToolUseFailure:Edit` matcher block that appends to `/tmp/post-tooluse-failure.log`; trigger an Edit failure (no-match string). If the log gains an entry → CC fires PostToolUseFailure for Edit at the hook layer (OMC-reminder layer is just selectively-quiet for Edit). If zero entry → CC genuinely doesn't fire PostToolUseFailure for Edit, and action-trace must use a different mechanism for Edit-failure coverage (or accept the gap).
-**Why priority 7 not earlier:** action-trace impl (priority 2) can ship without resolving Q-040 by accepting an Edit-failure-coverage gap with a clear TODO; that ship-now-fix-later trade-off keeps priority 2 unblocked. Q-039 + Q-040 are nice-to-have refinements, not load-bearing for the action-trace MVP.
+**Why priority 6 not earlier:** action-trace impl (priority 1) can ship without resolving Q-040 by accepting an Edit-failure-coverage gap with a clear TODO; that ship-now-fix-later trade-off keeps priority 1 unblocked. Q-039 + Q-040 are nice-to-have refinements, not load-bearing for the action-trace MVP.
 
 ### Closed in prior sessions
 - ~~Add negative-case test for D-052 (success=false → no archive)~~ — DONE in `c78c3f2` (session 2)
@@ -104,6 +103,7 @@ Worth pinning when one of us spots the moment. All four required:
 - ~~Discover whether D-052 archive-pa actually works in production~~ — DONE in intent-008 spike (session 4, no commit; result documented as D-057 — it doesn't)
 - ~~Resolve Q-038 — does CC PostToolUse fire on tool failure or only success?~~ — DONE in intent-011 spike (session 5, no commit; result documented as D-058 — fires only on success, n=4 corpus across Edit/Write/Bash + 2 distinct Bash failure modes; ratified in `b6a37b6`)
 - ~~Resolve Q-036 — should hooks.json subscribe to PostToolUseFailure?~~ — DONE in intent-011 spike (session 5, no commit; result documented as D-059 — PostToolUseFailure is a distinct CC event, subscribing is feasible; gated on Q-039 fresh-session reload mechanism; ratified in `b6a37b6`)
+- ~~Replace synthetic D-052 test fixture AND drop the `bin/tbd.js:199` success predicate in one commit (intent-010, BROADENED)~~ — DONE in intent-013 (`dd03552`, session 6) as a five-atomic-change bundle: fixture swap, predicate drop, NEW navigator-bypass regression test, navigator-bypass carve-out in `runArchivePa` (D-060 candidate), and DELETION of `test-d052-archive-on-failure.sh` (unreachable-path test = dishonesty per session-4 fixture-honesty lesson). D-060 ratified in `e21af40`. `.tbd/archive/` now exists on disk.
 
 ---
 
@@ -113,10 +113,10 @@ Worth pinning when one of us spots the moment. All four required:
 - **Q-019** (refactor behaviour-preservation check) — needed when refactor commit category is implemented
 - **Q-030** (schema migration policy on `version:` bump) — needed at first version bump
 - ~~**Q-036** (PostToolUseFailure subscription)~~ — **RESOLVED** session-5, see D-059 (event exists; subscribing feasible; Q-040 sub-question)
-- **Q-037** (session_id namespace reconciliation) — needed at first action-trace populate (priority 2)
-- ~~**Q-038** (does PostToolUse fire on failure?)~~ — **RESOLVED** session-5, see D-058 (fires only on success, n=4 corpus). Predicate-drop now part of priority 1.
-- **Q-039** (mid-session hooks.json reload mechanism) — gates priority 7 follow-on spike; doesn't block priority 2 action-trace ship-now (PostToolUseFailure subscription can be added with a session-restart instruction)
-- **Q-040** (Edit-failure PostToolUseFailure variant) — gates safe action-trace Edit-failure coverage; doesn't block priority 2 MVP (Edit-failure gap can ship with TODO)
+- **Q-037** (session_id namespace reconciliation) — needed at first action-trace populate (priority 1)
+- ~~**Q-038** (does PostToolUse fire on failure?)~~ — **RESOLVED** session-5, see D-058 (fires only on success, n=4 corpus). Predicate drop landed in intent-013.
+- **Q-039** (mid-session hooks.json reload mechanism) — gates priority 6 follow-on spike; doesn't block priority 1 action-trace ship-now (PostToolUseFailure subscription can be added with a session-restart instruction)
+- **Q-040** (Edit-failure PostToolUseFailure variant) — gates safe action-trace Edit-failure coverage; doesn't block priority 1 MVP (Edit-failure gap can ship with TODO)
 
 ---
 
@@ -124,9 +124,9 @@ Worth pinning when one of us spots the moment. All four required:
 
 1. `README.md` — orient
 2. This file (`NEXT-SESSION.md`)
-3. `DESIGN-LOG.md` § Pinned decisions — recent entries are D-046 → D-053
-4. `DESIGN-LOG.md` § Open questions — recent entries Q-028 → Q-034 (Q-035 not yet logged here; in dissent log only)
-5. `.tbd/dissent-log.jsonl` — the empirical record from session 1
+3. `DESIGN-LOG.md` § Pinned decisions — recent entries are D-046 → D-060
+4. `DESIGN-LOG.md` § Open questions — recent entries Q-028 → Q-040
+5. `.tbd/dissent-log.jsonl` — the empirical record from sessions 1–6
 6. `COMPONENTS.md` § Walking skeleton — what's now done
 7. `SCHEMAS.md` § Veto.json + § State machine — load-bearing artefacts
 
@@ -140,6 +140,7 @@ git log --oneline -10            # see the walking-skeleton commits
 git pull origin main              # sync if anything landed remotely
 node ./bin/tbd.js version         # smoke-test the CLI
 bash ./test/hook/test-d051-tbd-bypass.sh   # smoke-test the carve-out (should PASS)
+ls .tbd/archive/                  # post-intent-013 this is non-empty
 claude --plugin-dir .             # load the plugin in dev mode — pilot becomes default main agent
 ```
 
@@ -166,8 +167,8 @@ The session closed with the walking-skeleton + D-052 + self-archive fix all land
 
 To resume safely:
 
-1. Read `NEXT-SESSION.md` (this file) and `DESIGN-LOG.md` § Open questions (recent Q-033 → Q-035, plus possibly Q-036 if added).
-2. Run `bash test/hook/test-d051-tbd-bypass.sh` and `bash test/hook/test-d052-archive-on-success.sh` and `bash test/hook/test-d052-archive-on-failure.sh` and `bash test/hook/test-d052-self-archive-skip.sh` — all four should PASS. Sanity check.
+1. Read `NEXT-SESSION.md` (this file) and `DESIGN-LOG.md` § Open questions (recent Q-033 → Q-040).
+2. Run `bash test/hook/test-d051-tbd-bypass.sh` and `bash test/hook/test-d052-archive-on-success.sh` and `bash test/hook/test-d052-self-archive-skip.sh` and `bash test/hook/test-q035-navigator-agent-bypass.sh` and `bash test/hook/test-q036-navigator-bypass-in-archive-pa.sh` — all five should PASS. Sanity check. (Note: `test-d052-archive-on-failure.sh` was DELETED in intent-013 — see session-6 lessons for rationale.)
 3. Run `/oh-my-tbd:start <type> <description>` to declare a fresh intent for whatever you're tackling.
 4. Pick a priority from "What to do next" and proceed via normal pilot loop.
 
@@ -177,7 +178,7 @@ To resume safely:
 
 **Goal:** close priority 2 from session-1 NEXT-SESSION — D-052 archive-on-failure negative-case test.
 
-**Outcome:** landed. One file (`test/hook/test-d052-archive-on-failure.sh`, 103 lines), two fixtures (`success=false` + `success-absent`), all four hook tests PASS, pushed to origin. Total work-unit: ~3 commits' worth of pilot/navigator cycles compressed into one ship.
+**Outcome:** landed. One file (`test/hook/test-d052-archive-on-failure.sh`, 103 lines), two fixtures (`success=false` + `success-absent`), all four hook tests PASS, pushed to origin. Total work-unit: ~3 commits' worth of pilot/navigator cycles compressed into one ship. (Note: intent-013 in session 6 subsequently DELETED this test on fixture-honesty grounds once D-058 proved the failure path unreachable — see session-6 lessons.)
 
 ### Three lessons worth carrying forward
 
@@ -220,7 +221,7 @@ To resume safely:
 
 ---
 
-## Session 4 progress (2026-05-20, intent-008 spike no-commit + intent-009 docs commit `<this commit>`)
+## Session 4 progress (2026-05-20, intent-008 spike no-commit + intent-009 docs commit `515f2c9`)
 
 **Goal:** start work on session-3 priority 2 (action-trace.jsonl population). Discovered mid-flight that priority 2 presupposes a working substrate, then discovered the substrate was silently broken.
 
@@ -245,11 +246,11 @@ To resume safely:
 
 ---
 
-## Session 5 progress (2026-05-20, intent-011 spike no-commit + intent-012 docs commits `b6a37b6` + `<this commit>`)
+## Session 5 progress (2026-05-20, intent-011 spike no-commit + intent-012 docs commits `b6a37b6` + `5ee090a`)
 
 **Goal:** start with the obvious follow-on from session-4 — Q-038 multi-tool multi-failure-class spike (declared at session-start as priority 2). Resolve Q-038 so intent-010 can broaden its scope from fixture-only to fixture-plus-predicate-drop.
 
-**Outcome:** Q-038 + Q-036 both resolved by intent-011's commit-less dual-probe spike (instrumentation in `bin/tbd.js#runArchivePa` capturing every PostToolUse payload to `/tmp/post-tooluse-failure.log` regardless of `success` state, plus a parallel PostToolUseFailure matcher block in `hooks/hooks.json`). n=4 failure-class corpus (Edit no-match + Write EROFS + Bash `false` + Bash `cat /nonexistent`) produced ZERO PostToolUse entries while in-window successes did fire → D-058 ratified. OMC-reminder layer surfaced `PostToolUseFailure:Write` (1×) + `PostToolUseFailure:Bash` (2×) → D-059 ratified. Edge case (no `PostToolUseFailure:Edit` reminder despite Edit-failure firing) flagged as Q-040 sub-question. Mid-session-hooks-reload-doesn't-work flagged as Q-039 (probe-2's PostToolUseFailure matcher was on-disk during the failure-trigger phase but never invoked — meaning the runtime never re-read hooks.json after session-start). Spike reverted cleanly in-session (`git diff bin/tbd.js hooks/hooks.json` empty post-revert per pa-069 + pa-070). Intent-012 ratified the four findings into DESIGN-LOG.md (`b6a37b6`) and this NEXT-SESSION.md (`<this commit>`) as two per-file commits.
+**Outcome:** Q-038 + Q-036 both resolved by intent-011's commit-less dual-probe spike (instrumentation in `bin/tbd.js#runArchivePa` capturing every PostToolUse payload to `/tmp/post-tooluse-failure.log` regardless of `success` state, plus a parallel PostToolUseFailure matcher block in `hooks/hooks.json`). n=4 failure-class corpus (Edit no-match + Write EROFS + Bash `false` + Bash `cat /nonexistent`) produced ZERO PostToolUse entries while in-window successes did fire → D-058 ratified. OMC-reminder layer surfaced `PostToolUseFailure:Write` (1×) + `PostToolUseFailure:Bash` (2×) → D-059 ratified. Edge case (no `PostToolUseFailure:Edit` reminder despite Edit-failure firing) flagged as Q-040 sub-question. Mid-session-hooks-reload-doesn't-work flagged as Q-039 (probe-2's PostToolUseFailure matcher was on-disk during the failure-trigger phase but never invoked — meaning the runtime never re-read hooks.json after session-start). Spike reverted cleanly in-session (`git diff bin/tbd.js hooks/hooks.json` empty post-revert per pa-069 + pa-070). Intent-012 ratified the four findings into DESIGN-LOG.md (`b6a37b6`) and NEXT-SESSION.md (`5ee090a`) as two per-file commits.
 
 ### Three lessons worth carrying forward
 
@@ -262,9 +263,35 @@ To resume safely:
 ### Substrate observations for next session
 
 - `dissent-log.jsonl` grew from ~32 entries to ~40+ entries this session (intent-011 spike cycles + intent-012 declaration-coherence veto on pa-071 + diff_summary veto on pa-073, both lifted on revision; pa-072 / pa-074 / pa-075 cleared first-pass). Two `veto_raised`/`veto_lifted` pairs in intent-012's docs work — both about coherence between substrate files (intent.description, pa.intent_str, pa.diff_summary, working tree), not about the underlying docs content.
-- `current-intent.json` ended at intent-012 (this docs work-unit). Intent chain across session 5: 010 (no longer declared — folded into intent-013 plan), 011 (chore spike, no commit), 012 (docs, two commits `b6a37b6` + `<this commit>`).
+- `current-intent.json` ended at intent-012 (this docs work-unit). Intent chain across session 5: 010 (no longer declared — folded into intent-013 plan), 011 (chore spike, no commit), 012 (docs, two commits `b6a37b6` + `5ee090a`).
 - `bin/tbd.js` unchanged from session-3 baseline (`4b93fda`). Three carve-outs in `runVetoCheck` still in place; success predicate at `bin/tbd.js:199` still present (intent-013 will drop it per priority 1). Intent-011 spike's TEMP appendFileSync was added and reverted in-session — git diff baseline holds.
 - `hooks/hooks.json` unchanged from session-3 baseline. Intent-011 spike's TEMP `PostToolUseFailure` matcher block was added and reverted in-session — but per Q-039 it was never actually invoked at runtime regardless, because CC loaded hooks.json at session-start and never re-read it.
 - `/tmp/post-tooluse-failure.log` (intent-011 spike capture) is volatile and may be cleared between sessions; intent-013 / intent-014 spikes will likely re-capture via the same TEMP appendFileSync pattern.
 - `.tbd/archive/` STILL doesn't exist on disk (intent-013 will fix this — the predicate-drop is what enables archive-pa to actually fire on real CC payloads). Verifiable post-intent-013 by `ls .tbd/archive/` returning a directory listing instead of ENOENT.
 - Spike findings count across sessions: session-3 = 1, session-4 = 6, session-5 = 4 (D-058 + D-059 + Q-039 + Q-040). The dual-probe spike's marginal cost over single-probe was ~2 more tool calls; payoff was the Q-036 resolution coming "for free" alongside Q-038. Pattern: pre-declare the broader corpus before instrumentation, capture everything once, derive multiple decisions from one revert cycle.
+
+---
+
+## Session 6 progress (2026-05-20, commits `dd03552 → ca24bcc → e21af40 → <this commit>`)
+
+**Goal:** close priority 1 from session-5 NEXT-SESSION (intent-010 broadened — fixture replacement + predicate drop in one commit). Layer the project-level operating-mode calibration on top. Ratify the D-060 forecast and restructure the priority queue.
+
+**Outcome:** all three landed. intent-013 (`dd03552`) shipped the five-atomic-change production fix that restored D-052 archive-pa on real CC payloads — D-057 fixture replacement, D-058 predicate drop, NEW D-056-symmetry-gap regression test, D-060 carve-out in `runArchivePa`, and DELETION of `test-d052-archive-on-failure.sh` (test-of-unreachable-code is dishonesty post-D-058). intent-014 (`ca24bcc`) layered the Mode A/Mode B operating-mode calibration as a project-level lens for the post-substrate-completion phase. intent-015 (`e21af40` + this commit) ratified D-060 on the design record and restructured the priority queue. The discipline machinery's CC-event-firing assumptions are now both correct AND match the production implementation. `.tbd/archive/` is verifiable on disk for the first time across all sessions.
+
+### Three lessons worth carrying forward
+
+- **Test-deletion as fixture-honesty (a novel principle application).** intent-013 change 5 deleted `test-d052-archive-on-failure.sh` on the grounds that D-058 proves the failure path is unreachable, and test-coverage of an unreachable code path is dishonesty (it claims to characterise behaviour that the runtime can never produce). This is the first time the project has deleted a test for being honest-only-under-the-old-model. **Pattern:** when a behavioural-grounding decision lands (D-058 here), the test corpus must be re-evaluated against the new model — tests that only-pass-under-the-old-assumptions are dishonest, not regression coverage. Bookmark for future ratifications of behavioural-grounding decisions: include "test corpus impact" as a default checklist item. Extends the session-2 mutation-table lesson and the session-4 fixture-honesty lesson — both said "test must guard what it claims to guard"; session-6 adds "test must claim only what the runtime can produce."
+
+- **17-pa-cycle intents are the Mode-A friction lens.** intent-013 cost 17 pa-cycles to ship five atomic changes — vs intent-014's 3 cycles for a 21-line docs commit, vs intent-015's projected 4 cycles for the two-commit docs pair. The ceremony cost scales with change-shape and surfaced-bugs-mid-flight, not just LOC. Mode B transition criterion #3 (navigator per-pa friction sub-30s on routine work) is met today on docs work; concentrated friction is on production-code multi-change atomic intents — exactly the work the discipline most needs to protect, but exactly where ceremony is most expensive. **Implication:** counters + action-trace + reduced ceremony for routine production-code intents (e.g. a "one-change-one-pa" simplification when intent declares is_single_atomic_change) is the right Mode-B direction. Priority 1 (action-trace) is the next concrete substrate work; counters + ceremony-shape calibration follow.
+
+- **The forecast-then-ratify pattern is robust across session boundaries.** intent-013's commit body explicitly forecast D-060 as a "candidate to be ratified in a follow-on DESIGN-LOG.md commit per the session-5 per-file-per-commit pattern." Intent-015 then did exactly that. The forecast carries three pieces of information forward: (1) what the next docs commit will pin, (2) why it's split from the implementation (per-file-per-commit hygiene), (3) the precedent it follows. The pattern lets a multi-commit work-unit cross session boundaries cleanly — the next session's resume-read finds an explicit pointer to the next ratification work, not a fuzzy "TODO: pin D-060." **Generalise:** any change that defers design-record landing should forecast it explicitly in its commit body. Mirrors the session-3 "fix verified itself in production via dogfood" lesson — the project's own substrate (commit messages, intent.successor_intent_planned, this NEXT-SESSION.md) is its own coordination protocol; use it.
+
+### Substrate observations for next session
+
+- `.tbd/archive/s-2026-05-20-001/` now actually accrues new pa archives (the production-on-disk verifiable consequence of intent-013). `ls .tbd/archive/` no longer returns ENOENT. First time in project history.
+- `dissent-log.jsonl` grew significantly this session (intent-013's 17 pa-cycles + intent-014's 3 + intent-015's projected 4–6). Worth grepping for `veto_lifted` vs `veto_raised` ratio as a Mode-A friction baseline before action-trace work begins in priority 1.
+- `current-intent.json` ended at intent-015 (this docs work). Intent chain across session 6: 013 (fix, commit dd03552), 014 (docs, commit ca24bcc), 015 (docs, commits e21af40 + this commit). Three intents, four commits — densest session yet by commit count.
+- `bin/tbd.js` now has three carve-outs in BOTH `runVetoCheck` (D-051 + D-056 + read-only Bash) AND `runArchivePa` (D-051 self-archive + D-060 navigator-agent + the implicit success-path-only by D-058). The substrate-self-exemption family is D-051 / D-056 / D-060; symmetry is now complete across both hook entry points.
+- `hooks/hooks.json` unchanged from session-3 baseline. Q-039 still gates any matcher-subscription change requiring mid-session reload.
+- Spike findings count across sessions: session-3=1, session-4=6, session-5=4, session-6=0 (no spike work this session — purely ratification + restructure). Sessions alternate between spike-discovery and fix-ratification cadence; intent-016 onward (action-trace impl, priority 1) is feat-cadence not spike-cadence.
+- Operating-mode calibration (Mode A bootstrap / Mode B deliverable) is now durably logged in this file's mid-section; intent-014's framing of "end of session 6" timestamp is accepted as-is even though session-6 technically extends through intent-015.
