@@ -1,124 +1,85 @@
 # Next-Session Continuation
 
-Working notes for resuming after a session restart. Read this first, then jump into priority 1.
+Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-20
-- **State:** bootstrap scaffold complete; not yet committed (user decides). Plugin loadable but applies no discipline yet.
+- **Last session ended:** 2026-05-20 (walking-skeleton landed)
+- **Trunk state:** main at 34363b0, pushed to origin (github.com/davewil/oh-my-tbd)
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
 
 ## Where we are
 
-- 49 pinned decisions, 1 explicit supersession (D-013 → D-050), 32 open/resolved questions.
-- All four design docs current: `DESIGN-LOG.md`, `COMPONENTS.md`, `SCHEMAS.md`, `VALIDATION.md`.
-- Git repo initialised on `main`. Bootstrap files written (plugin manifest, settings, stub agents, stub skills, hooks shell, CLI placeholder, README).
-- Plugin loadable via `claude --plugin-dir .` — all stubs render cleanly; no checks wired in yet.
-- Dogfood discipline (D-041) starts the moment the veto-check hook is real.
+**Walking-skeleton complete.** All 6 planned batches landed in this commit sequence (after `030cb17 Bootstrap`):
+
+| Commit | What |
+|---|---|
+| `e082866` | D-051 orchestration substrate carve-out (Write/Edit/NotebookEdit) + CLI-contract test |
+| `d790f61` | DESIGN-LOG: log D-051/D-052/D-053 + Q-033/Q-034 |
+| `e1a56e0` | Full pilot and navigator system prompts (Opus navigator) |
+| `0caaa72` | Wire veto-check hook into PreToolUse |
+| `ab56f47` | Skill specs: /oh-my-tbd:start, /oh-my-tbd:override |
+| `53e9efe` | TBD/XP/LEAN principles checklist (navigator rubric source) |
+| `34363b0` | Activate pilot as main thread via settings.json (D-049) |
+
+**Net result:** anyone enabling the plugin (`claude --plugin-dir .` or installed) gets the full discipline: pilot is the default main agent, navigator is invocable as `oh-my-tbd:navigator`, the veto-check hook fires on every state-changing tool call, `.tbd/` orchestration substrate is freely writable per D-051, principles checklist is loaded as the navigator's rubric source.
+
+**Decisions added this session:** D-051 (`.tbd/` carve-out — implemented), D-052 (consumption tracking — deferred), D-053 (baseline-not-doctrine calibration — ratified).
+
+**Open questions opened this session:** Q-033 (advisory pa at hook layer — D-054 candidate), Q-034 (soften consumption tracking — D-055 candidate), Q-035 (subagent tool calls bypass PreToolUse hook — discovered empirically).
 
 ---
 
 ## What to do next (priority order)
 
-### 1. Write the real `navigator.md` system prompt
+### 1. Implement D-052 — pending-action.json consumption tracking
+**Files:** `bin/tbd.js`, `test/hook/`
+**References:** D-052, D-043, the dogfood evidence in `.tbd/dissent-log.jsonl` (multiple `veto_raised` events from stale pa state)
+**Approach:** TDD-honest. Land a failing test first (pa is consumed on successful action; next state-changing call without fresh pa is refused). Then implement: hook archives consumed pa to `.tbd/archive/<session_id>/pa-<id>.json` after a successful pass.
+**Decisions to make in flight:** archive layout, archive-vs-mark-consumed (Q-034 — softer "warning not refusal" path is also an option per D-053).
 
-**File:** `agents/navigator.md`
-**References:** D-023 (asymmetric prompts), D-024 (context isolation), D-025 (measurement-first), D-026 (clarifying-question constraints), D-035 (fixed roles in v0).
-**Why first:** the navigator is the load-bearing artefact. The pilot's prompt depends on knowing what the navigator will check.
-**Key properties to encode:**
-- Default to vetoing.
-- See only diff + principles + invariants + dissent log + pending action.
-- Adversarial framing: false vetoes are recoverable; rubber-stamping is the failure mode.
-- Cite principle, evidence, remedy on every veto.
-- Constrained question channel (D-026 budgets).
+### 2. Reconcile Q-035 — subagent tool calls and PreToolUse hooks
+**Files:** `bin/tbd.js`, possibly `agents/navigator.md` (tool allowlist)
+**Discovery:** during this session the navigator subagent used `Bash >>` to append to `.tbd/dissent-log.jsonl` despite the D-051 carve-out being Write/Edit/NotebookEdit only. This means subagent tool calls either don't fire the PreToolUse hook at all, or fire but get allowed because of how the navigator is invoked.
+**Approach:** investigate empirically — does the PreToolUse hook fire on subagent Bash? Then choose: tighten navigator's tool allowlist (drop Bash, ship a small subagent-targeted helper), or extend D-051 carve-out to cover navigator's Bash to `.tbd/`, or document the gap and rely on prompt-level discipline.
 
-### 2. Write the real `pilot.md` system prompt
+### 3. Implement Bash carve-out for D-051 (carefully)
+**Files:** `bin/tbd.js`, `test/hook/`
+**References:** D-051 deferred-Bash work; navigator's pa-004 review surfaced the simple-design concern.
+**Approach:** the regex-over-command-text approach has false-positive risk. Better: extract `>` / `>>` redirect targets from the command text, check if the redirect destination is inside `.tbd/`. Still heuristic but more precise. TDD-honest: land failing tests covering both true positives (`echo X > .tbd/foo`) and true negatives (`echo ".tbd/ string" >> CHANGELOG.md`).
 
-**File:** `agents/pilot.md`
-**References:** D-023 (balanced toward action), D-033 (explicit navigator invocation), D-043 (skip-detection — pilot must write `pending-action.json` before state-changing calls).
-**Key properties:**
-- Bias toward action. Small commits. Frequent integration.
-- Always declare intent via `/oh-my-tbd:start` before a work unit.
-- Before any state-changing tool call: write `pending-action.json` (with hashed action), invoke `navigator` via Agent tool, read `veto.json`, address standing veto or proceed.
-- Address vetoes, do not argue past them; if dispute is needed, use `dissent-log.jsonl`.
+### 4. action-trace.jsonl population
+**Files:** `bin/tbd.js` (post-allow path)
+**Reference:** D-018, COMPONENTS.md
+**Approach:** when veto-check returns `allow`, also append a single line to `.tbd/action-trace.jsonl` capturing tool, redacted args, decision, timestamp. Q-029 (secret-redaction) is the open design question here.
 
-### 3. Implement `tbd hook veto-check` in `bin/tbd.js`
+### 5. session-state.json counter maintenance
+**Files:** `bin/tbd.js`, possibly skills' SKILL.md content for orchestration
+**Reference:** the navigator surfaced this drift across multiple session reviews (`vetoes_lifted` stayed at 0 while dissent log accumulated). Either pilot bumps counters, navigator bumps counters, or the hook bumps counters on certain events.
 
-**File:** `bin/tbd.js`
-**References:** D-014, D-034, D-043, D-048.
-**Subcommand:** `tbd hook veto-check`
-**Inputs:** reads `.tbd/veto.json`, `.tbd/pending-action.json`, hook input JSON on stdin (for the about-to-fire tool call).
-**Behaviour:**
-- If `pending-action.json` absent and incoming call is state-changing → return `permissionDecision: "deny"` with reason "declare via /oh-my-tbd:start and navigator-review flow first."
-- If `veto.json` present with `status: standing` AND its `blocked_action_ref` hash matches the incoming hash → return `deny` with reason built from `principle / principle_source / reason / first remedy`.
-- Otherwise → return `permissionDecision: "allow"`.
-- Output format: JSON with `hookSpecificOutput.hookEventName: "PreToolUse"`, `permissionDecision`, `permissionDecisionReason`.
-
-### 4. Wire the veto-check hook into `hooks/hooks.json`
-
-**File:** `hooks/hooks.json`
-**Reference:** D-047 exec form.
-
-```json
-{
-  "description": "oh-my-tbd PreToolUse veto check (discipline backstop)",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/bin/tbd.js", "hook", "veto-check"]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### 5. Implement `/oh-my-tbd:start` and `/oh-my-tbd:override` skills
-
-**Files:** `skills/start/SKILL.md`, `skills/override/SKILL.md`.
-**Behaviour:** described in the stubs themselves.
-
-### 6. Add `settings.json` activating pilot as main thread
-
-**File:** `settings.json` (plugin root).
-**Reference:** D-049.
-
-```json
-{ "agent": "pilot" }
-```
-
-Defer until pilot.md is real (priority 2) — activating an unfinished pilot as main thread would be confusing UX.
-
-### 7. Author `principles/principles.md`
-
-**File:** `principles/principles.md` (new directory).
-**Content:** the TBD / XP / LEAN checklist the navigator walks. Anchored on `DESIGN-LOG.md` D-007 and the named principles cited across decisions.
+### 6. current-intent.json cleanup convention
+**Reference:** the navigator surfaced repeatedly that current-intent.json drifted from the actual work as batches progressed. Conventions to decide: when to re-declare, when to close out (delete? archive? mark complete?), how intent transitions propagate to pa.
 
 ---
 
 ## Open decisions to revisit during build
 
-- **Q-018** (per-language dynamic-wiring patterns) — needed when L2 adapters land (P4-equivalent in the original phasing).
-- **Q-019** (refactor behaviour-preservation check) — needed when the refactor commit category is implemented.
-- **Q-029** (secret-redaction patterns in action-trace) — needed when action-trace lands.
-- **Q-030** (schema migration policy on `version:` bump) — needed at the first version bump.
-- **Q-031** (UUID vs timestamp+counter ID generation) — defer until team-mode is in scope.
+- **Q-002** (per-language non-interaction adapters) — needed when L2 reachability check lands
+- **Q-019** (refactor behaviour-preservation check) — needed when refactor commit category is implemented
+- **Q-029** (secret-redaction patterns in action-trace) — needed alongside #4 above
+- **Q-030** (schema migration policy on `version:` bump) — needed at first version bump
 
 ---
 
-## Files to read on resume (5-10 minutes total)
+## Files to read on resume (~5-10 minutes)
 
-1. `README.md` — orient.
-2. This file (`NEXT-SESSION.md`).
-3. `DESIGN-LOG.md` § "Pinned decisions" — recent entries are D-041 → D-050.
-4. `COMPONENTS.md` § "Walking skeleton" — the minimum loop you are building.
-5. `SCHEMAS.md` § "Veto.json" + § "State machine" — load-bearing artefacts.
+1. `README.md` — orient
+2. This file (`NEXT-SESSION.md`)
+3. `DESIGN-LOG.md` § Pinned decisions — recent entries are D-046 → D-053
+4. `DESIGN-LOG.md` § Open questions — recent entries Q-028 → Q-034 (Q-035 not yet logged here; in dissent log only)
+5. `.tbd/dissent-log.jsonl` — the empirical record from session 1
+6. `COMPONENTS.md` § Walking skeleton — what's now done
+7. `SCHEMAS.md` § Veto.json + § State machine — load-bearing artefacts
 
 ---
 
@@ -126,14 +87,19 @@ Defer until pilot.md is real (priority 2) — activating an unfinished pilot as 
 
 ```bash
 cd /Volumes/Personal/Users/davidwilliams/dev/trunk/
-git log --oneline -5         # see where the bootstrap commit landed (if committed)
-git status                   # see what's staged / dirty
-node ./bin/tbd.js version    # smoke-test the CLI placeholder
-claude --plugin-dir .        # load the plugin in dev mode
+git log --oneline -10            # see the walking-skeleton commits
+git pull origin main              # sync if anything landed remotely
+node ./bin/tbd.js version         # smoke-test the CLI
+bash ./test/hook/test-d051-tbd-bypass.sh   # smoke-test the carve-out (should PASS)
+claude --plugin-dir .             # load the plugin in dev mode — pilot becomes default main agent
 ```
 
 ---
 
-## A note on the bootstrap chicken-and-egg
+## Session-1 lessons worth carrying forward
 
-Per D-041 (self-dogfood) and option (c) chosen at the last session: the project uses its own discipline as soon as the backstop is live. Priorities 1–4 above bring the minimum loop online. From priority 5 onward, the project's own commits are subject to the veto-check, the divergence cap, and so on — using oh-my-tbd to develop oh-my-tbd. Add a brief entry to `VALIDATION.md` §4 ("Dogfood outcomes") each time a milestone is hit.
+- **D-051+D-052 friction was real but transient.** Once D-051 landed in batch 0, the per-batch ceremony collapsed from ~30 min to ~3 min per commit.
+- **D-053 calibration changed the navigator's behaviour mid-session.** Same agent, same prompt, but the rubric application softened on procedural drift while staying firm on substantive risk.
+- **The discipline catches real issues.** pa-004 TDD veto prevented untested production code from shipping. The carve-out fix is itself the canonical example of "fix it properly first, then resume."
+- **The navigator self-disclosed a Bash discipline-break** (pa-018) — Q-035 emerged from that. The agent prompt's anti-bypass language held up under stress.
+- **Don't add ceremony for low-risk work.** Per D-053, the `git push` after the walking skeleton landed needed no navigator review. Process serves people.
