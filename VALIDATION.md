@@ -1,98 +1,56 @@
-# oh-my-tbd — Validation Plan (v0)
+# Validation
 
-> ⚠️ **This document describes the pre-reset architecture.** Session-9 (2026-05-21) ratified a deep architectural reset that removed the navigator subagent and the corpus-detection-rate / veto-rate-stability metrics anchored on it. The post-reset validation surface is much smaller: one hook test (`test/hook/test-s3-narrow-refuse-on-trunk.sh`, 11 cases) and human-judged dogfood feedback on whether the pilot prompt produces XP behaviour. A post-reset rewrite is pending — see [NEXT-SESSION.md](./NEXT-SESSION.md) for the current shape.
+How we know the plugin is working post-reset.
 
-What "v0 done" looks like. Numbers are placeholders pending first telemetry; calibrated empirically during dogfooding.
-
-- **Status:** skeleton (pre-reset; rewrite pending)
-- **Started:** 2026-05-19
-- **Companion to:** `DESIGN-LOG.md`, `COMPONENTS.md`, `SCHEMAS.md`
+The discipline lives in two places: a system prompt that coaches XP behaviour, and a hook that refuses three irrecoverable git operations on trunk. Each is validated differently — the hook mechanically, the prompt humanly. There is no longer a corpus-detection-rate or veto-rate-stability metric, because there is no rubric-as-code to drift against.
 
 ---
 
-## 1. Navigator quality bar
+## 1. The safety hook — mechanical, one test
 
-The navigator's value depends on it actually catching things. Without measurement, "engineered difference" is hopeful design (per D-025).
+```bash
+bash test/hook/test-s3-narrow-refuse-on-trunk.sh
+```
 
-| Metric | Target (placeholder) | How measured |
-|---|---|---|
-| Adversarial-corpus detection rate | ≥ 90% | Plugin CI runs known-bad diff corpus through navigator; counts correctly-raised vetoes |
-| Principle diversity in detection | ≥ 80% of principle categories represented across corpus runs | Veto distribution across `principle` field values |
-| False-positive rate (paired-mode) | ≤ 20% of vetoes overridden by human | `overrides.jsonl` / `dissent-log.jsonl` ratio |
-| Veto-rate stability across prompt revisions | Δ ≤ 10% absolute on same corpus | Regression check before any navigator prompt change ships |
+11 cases, all GREEN on `main`:
 
-**Failure modes to watch for:**
-- Veto rate near 0% across many sessions → navigator is rubber-stamping; investigate
-- Veto rate near 100% → navigator is over-strict; investigate
-- One principle dominates vetoes → other principles aren't being checked; investigate
+- 6 refusals: `git push --force` / `-f` / `--force-with-lease` on trunk, `git reset --hard` on trunk, `git branch -D <trunk>` / `--delete --force <trunk>`.
+- 5 permits: `git push origin main` (no force), `git reset --soft`, `git branch -D <feature>`, `ls`, `git push --force origin <feature>`.
 
-## 2. Veto-rate health band
+This is the entire mechanical surface. If this test goes RED, the discipline's safety net is broken; ship a fix before anything else. If we ever want a new mechanical refusal, the bar is "would not having this cost someone irrecoverable history?" — anything else belongs in conversation.
 
-Per-session counts from `dissent-log.jsonl`:
+---
 
-| Metric | Target band | Reasoning |
-|---|---|---|
-| Vetoes per session | TBD after first 20 dogfood sessions | Empirical baseline |
-| Sessions with zero vetoes | < 10% | Either pilot is perfect or navigator is asleep — both worth investigating |
-| Median dissent-log entries per session | TBD | Health signal for engagement |
+## 2. The pilot prompt — judged humanly, via dogfood
 
-## 3. Override-rate ceiling
+`agents/pilot.md` is validated by the simple test: **when running the plugin against real work, does the pilot actually practise XP?** Small commits, test-first, frequent integration, refactors as first-class commits, intent declared, honest commit messages. Either it does or it doesn't.
 
-| Metric | Target | Source |
-|---|---|---|
-| Human override rate | ≤ 15% of raised vetoes | `overrides.jsonl` |
-| Recurring override-reason categories | Surfaced in `/tbd:retro` | Triggers rule revision when a reason recurs ≥ 3 times |
-| Autonomous-mode override attempts blocked | 100% | Pilot must escalate to human in autonomous; auto-overrides are a bug |
+Signals of a healthy session (already articulated in pilot.md §"Validating the discipline"):
 
-## 4. Dogfood outcomes (per D-041)
+- A couple of mild objections from the pair (currently the human), quick revisions, otherwise quiet flow.
+- Zero objections across a session is suspicious — either perfect work or the pair is asleep. Both worth flagging.
+- Constant friction means either the work unit is too big or the discipline is miscalibrated.
 
-oh-my-tbd is developed under its own discipline. v0 ships only after **one full sprint** with:
+The audit trail for any session is `git log` + `git reflog` + the conversation transcript. That's enough to retrospect on without a separate jsonl ledger.
 
-- All commits respect batch-size caps (or override-with-reason logged)
-- All feature work behind flags (or override-with-reason logged)
-- Divergence cap respected (per D-050)
-- Veto/override patterns retro'd weekly
-- Adversarial-corpus regression suite passing on every change to navigator prompt or principle files
+---
 
-**Concrete dogfood milestones:**
+## 3. What we explicitly don't measure
 
-- [ ] Walking skeleton built using only walking-skeleton discipline
-- [ ] First navigator veto raised on the project's own code
-- [ ] First human override on the project's own code (with reason captured)
-- [ ] First retro using `/tbd:retro` on the project's own dissent log
+Honest about the post-reset narrowing:
 
-## 5. External A/B story
+- **No corpus-detection rate.** No adversarial test corpus exists; the navigator that would have run against it was deleted in slice 7.
+- **No veto rate, no override rate.** The pilot/navigator filesystem message bus is gone; there are no vetoes or overrides to count.
+- **No principle-coverage metric.** The rubric-as-code that would have classified vetoes by principle is gone.
+- **No cross-repo generalisation evidence.** The plugin runs against this one repo (`oh-my-tbd` developing itself); there is no external A/B story.
+- **No long-term codebase-health study.** Out of scope for a tool this thin.
 
-Before broad publish:
+These were measured (or planned to be measured) in earlier drafts; their absence is the point. The session-9 reset traded measurement surface for design simplicity. The honest claim is: this plugin is a system prompt + a fat-finger guard, not a quality regime. It earns its keep if the prompt-and-hook combination produces visibly better behaviour than no plugin at all — which is itself a human judgement, not a metric.
 
-- [ ] One external repo (not author's) runs oh-my-tbd for a sprint
-- [ ] Measured baseline: defect rate, integration cadence (commits/day to trunk), override count
-- [ ] Comparative: same team's prior sprint without oh-my-tbd
-- [ ] Story documented in this file's "Calibration log" section
+---
 
-**Caveat:** a single external project is existence proof, not proof of generalisability. v0 publish acknowledges this explicitly in the README.
+## 4. Cross-references
 
-## 6. Calibration log
-
-(Reserved for empirical numbers as telemetry accumulates.)
-
-| Date | Cohort | Sessions | Median vetoes/session | Override % | Adversarial detect % | Notes |
-|---|---|---|---|---|---|---|
-| | | | | | | |
-
-## 7. Risks to validity
-
-- **Single dogfood project is not generalisable.** Author bias toward designs that pass their own discipline.
-- **Adversarial corpus quality is itself unmeasured.** A corpus that misses real-world violation patterns gives false confidence.
-- **"Open to all practitioners" (D-001) is aspirational** — v0 is CC-only (D-042). Generalisation to other tools is unvalidated.
-- **Cost stance** (D-009 — cost not a constraint) is unmeasured in dogfooding. Need to track token spend per session and surface in retros; if pairing cost exceeds genuine quality lift, the stance needs revisiting.
-- **TBD's own evidence base** is biased toward teams that adopted it because they were already inclined to discipline. Whether oh-my-tbd helps teams that *aren't* so inclined is unknown.
-
-## 8. What we explicitly do NOT measure in v0
-
-- Long-term codebase health (months to years; out of scope)
-- Cross-repo generalisation (requires N projects; out of scope)
-- Team-scale dynamics (more than 2-3 humans; out of scope)
-- Cost per LOC produced (would need attribution heuristic; out of scope)
-
-These are noted so v1 success doesn't quietly creep into "v0 promises that were never made."
+- [agents/pilot.md](./agents/pilot.md) — the prompt under validation, §"Validating the discipline" for the human-judged signals.
+- [COMPONENTS.md](./COMPONENTS.md) — what's on disk, including the hook and the test.
+- [DESIGN-LOG.md](./DESIGN-LOG.md) — the session-9 reset decisions, including `(f1)` (drop counters/metrics) and the conscious trade between measurement surface and design simplicity.
