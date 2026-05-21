@@ -16,16 +16,5 @@ dist/
 .DS_Store
 Thumbs.db
 
-# .tbd/ runtime state — per D-022, only commit static config
+# .tbd/ runtime state — session-local sticky note, not project code
 .tbd/current-intent.json
-.tbd/session-state.json
-.tbd/pending-action.json
-.tbd/veto.json
-.tbd/navigator-questions.jsonl
-.tbd/pilot-responses.jsonl
-.tbd/action-trace.jsonl
-.tbd/dissent-log.jsonl
-.tbd/overrides.jsonl
-.tbd/handoff-*.json
-.tbd/STATUS.md
-.tbd/archive/
