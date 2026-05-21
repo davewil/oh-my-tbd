@@ -1,57 +1,47 @@
-# oh-my-tbd — Library Principles (v0)
+# oh-my-tbd — Principles Reference
 
-The TBD / XP / LEAN checklist the navigator walks for every pending action. Project-level extensions live in `.tbd/principles-additions.md` (additive); project-specific contracts live in `.tbd/invariants.md`.
+Reference reading on the practices the pilot operates under. This file is no longer a runtime rubric — there is no navigator that reads it before every action, no `veto.json` machinery, no adversarial-corpus regression suite. Post-reset, this file exists as coaching material for the pilot and for any human curious about the underlying practice.
 
-Per D-007: every veto cites the principle being upheld. Principle names here are the canonical `principle` field values for `.tbd/veto.json`. The `principle_source` field uses one of `TBD | XP | LEAN | project-invariants | principles-additions`.
-
-Per D-022 precedence: this file (library) < `~/.tbd/principles-additions.md` (user) < `.tbd/principles-additions.md` (project). Additions stack; project files cannot remove a library principle, only add or constrain.
+The pilot prompt ([agents/pilot.md](../agents/pilot.md)) carries the load-bearing summary. This file unpacks the same practices with concrete violation patterns and recovery moves.
 
 ---
 
 ## TBD — Trunk-Based Development
 
-### `trunk-divergence`
+### Trunk-divergence
 
-**Source:** TBD. **Cite as:** `TBD/trunk-divergence`.
-
-Divergence from trunk is debt. The cap (`.tbd/config.yaml: trunk.divergence_cap.max_hours`) applies to whichever divergence source is largest (D-050):
+Divergence from trunk is debt. Three sources count, and the largest is what matters:
 
 - Named branch age since merge-base with trunk
 - Age of oldest uncommitted change in the working tree
 - Age of oldest stash entry
 
-**Veto when:** the proposed action would push current divergence beyond the cap, OR divergence is already over cap and the action does not reduce it.
+**Watch for:** divergence creeping up before starting a new work unit; long-lived feature branches; "I'll commit after one more thing" patterns that compound.
 
-**Veto remedy:** integrate to trunk (commit + push, or open PR for merge) before further work.
+**Recovery:** integrate to trunk (commit + push, or open PR for merge) before further work. The smallest shippable subset goes first; the rest follows as separate commits.
 
-### `small-batches`
+### Small batches
 
-**Source:** TBD. **Cite as:** `TBD/small-batches`.
+Each commit makes one declarable change. Bundling is the dominant defect correlate in trunk-based work — it makes review hard, rollback coarse, and bisect useless.
 
-Each commit makes one declarable change. Bundling is the dominant defect-correlate in trunk-based work — it makes review hard, rollback coarse, and bisect useless.
-
-**Veto patterns:**
+**Watch for:**
 - Refactor + new feature in one diff
 - Two distinct features in one diff
 - Feature + unrelated bug fix in one diff
 - Drive-by formatting changes mixed into a substantive diff
 - "While I was in here, I also..." anywhere in the rationale
 
-**Veto remedy:** split into separate commits, each with its own declared intent.
+**Recovery:** split into separate commits, each with its own declared intent. If you've already done the work, `git reset --soft` to lift the changes off HEAD and re-stage in batches.
 
-### `integration-cadence`
-
-**Source:** TBD. **Cite as:** `TBD/integration-cadence`.
+### Integration cadence
 
 Frequent integration is the practice that makes TBD viable. Multi-day accumulations defeat its risk model.
 
-**Veto when:** a commit represents work that should have integrated days ago, OR the action defers an integration that is now possible.
+**Watch for:** a commit representing work that should have integrated days ago; defers of integration that is now possible; "I'll integrate after I get this one piece right" loops.
 
-**Veto remedy:** integrate the smallest shippable subset first; defer the rest to a follow-up commit.
+**Recovery:** integrate the smallest shippable subset first; defer the rest to a follow-up commit.
 
-### `expand-contract`
-
-**Source:** TBD. **Cite as:** `TBD/expand-contract`.
+### Expand-contract
 
 Schema migrations are expand-then-contract across separate commits:
 
@@ -61,220 +51,128 @@ Schema migrations are expand-then-contract across separate commits:
 
 Each phase is a separate commit. Combined add+remove in one commit breaks rollback safety.
 
-**Veto when:** a migration drops a column / table / field the same commit it adds the replacement.
+**Watch for:** a migration that drops a column / table / field in the same commit it adds the replacement.
 
-**Veto remedy:** split into expand and contract commits, ideally separated by a deploy cycle.
+**Recovery:** split into expand and contract commits, ideally separated by a deploy cycle.
 
 ---
 
 ## XP — Extreme Programming
 
-### `tdd`
+### Test-first (TDD)
 
-**Source:** XP. **Cite as:** `XP/tdd`.
+Production code changes follow a failing test. New behaviour: test first. Bug fix: regression test first.
 
-Production code changes follow a failing test. Per D-012 the navigator upholds TDD by checklist (no separate mechanical TDD hook in v0).
+**Watch for:**
+- New function or method with no test that exercises it
+- A behavioural change in production code with no corresponding test change
+- A bug fix landing without a regression test
 
-**Veto when:**
-- New function or method exists without a test that exercises it
-- A behavioural change appears in production code with no corresponding test change
-- A bug fix lands without a regression test
+**Exception:** a declared refactor doesn't add new tests — but the existing suite must cover the changed paths and pass unchanged. That's the `behaviour-preservation` discipline below, which is stricter than test-first, not laxer.
 
-**Exception:** `current-intent.json.type == "refactor"` exempts the diff from new-test-required, but raises `behaviour-preservation` instead (which is *stricter* — the test suite must already cover the changed paths and pass unchanged).
+**Recovery:** write the failing test first, then make the production change to turn it green.
 
-**Veto remedy:** write the failing test first, then re-propose the production change.
+### YAGNI
 
-### `yagni`
+You aren't gonna need it. Code added for hypothetical future requirements is waste — cognitive load, maintenance, attack surface — with no caller justifying it now.
 
-**Source:** XP. **Cite as:** `XP/yagni`.
-
-You aren't gonna need it. Code added for hypothetical future requirements is waste — it has cost (cognitive load, maintenance, attack surface) without benefit (no caller justifies it now).
-
-**Veto patterns:**
+**Watch for:**
 - New configuration option with no caller
 - Abstract base class with one implementation
-- Function parameter "in case we need to..." with no current caller using it
+- Function parameter "in case we need to..." with no current use
 - Branch in code "for when X happens" with no current X
 - A library dependency added for one not-yet-needed capability
 
-**Veto remedy:** delete the speculation. Add it back when the third concrete need appears.
+**Recovery:** delete the speculation. Add it back when the third concrete need appears.
 
-### `simple-design`
+### Simple design
 
-**Source:** XP. **Cite as:** `XP/simple-design`.
+Premature abstraction is worse than three similar lines. Kent Beck's rules apply — passes tests, reveals intent, no duplication, fewest elements. "Fewest elements" is the one most often violated.
 
-Premature abstraction is worse than three similar lines. Kent Beck's rules (passes tests, reveals intent, no duplication, fewest elements) apply; "fewest elements" is the one most often violated.
-
-**Veto patterns:**
+**Watch for:**
 - New abstraction introduced for fewer than three concrete uses
 - Strategy / Factory / Builder applied to one variant
 - Generic type / interface introduced for one implementation
 - Premature dependency injection where direct construction would do
 
-**Veto remedy:** inline the abstraction. Restore it when the third concrete instance appears and the duplication has actually become a maintenance problem.
+**Recovery:** inline the abstraction. Restore it when the third concrete instance appears and the duplication has actually become a maintenance problem.
 
-### `behaviour-preservation`
+### Behaviour preservation (refactor discipline)
 
-**Source:** XP. **Cite as:** `XP/behaviour-preservation`. Applies only when `current-intent.json.type == "refactor"`.
+Applies when the declared work-unit type is `refactor`. A pure refactor changes structure without changing observable behaviour. The contract: the test suite as it stood before the refactor passes unchanged after.
 
-A pure refactor changes structure without changing observable behaviour. The contract is: the test suite as it stood before the refactor passes unchanged after.
-
-**Veto patterns:**
+**Watch for:**
 - Assertion changed in any test in the same diff
 - Test deleted in the same diff
 - New branch in production code (refactors don't add branches; they reshape existing ones)
 - Public API signature changed
 - Behaviour-visible side effect added or removed (logs that contracts depend on, exception types narrowed/widened)
 
-**Veto remedy:** if behaviour really must change, redeclare intent as `feature` or `fix` and write a test that captures the change.
+**Recovery:** if behaviour really must change, re-declare the intent as `feature` or `fix` and write a test that captures the change.
 
-### `continuous-integration`
-
-**Source:** XP. **Cite as:** `XP/continuous-integration`.
+### Continuous integration (honest commit messages)
 
 Commits integrate working software. Bare or evasive commit messages defeat that.
 
-**Veto patterns:**
+**Watch for:**
 - `wip`, `fix`, `stuff`, `more`, `update`, `temp`, `.` as the entire message
 - Message that does not name the changed surface ("fix bug" without naming what bug)
 - Message that promises the next commit ("part 1 of N" without N being declared)
 
-**Veto remedy:** write a one-line subject + optional body. Subject names the change; body names the why.
+**Recovery:** write a one-line subject + optional body. Subject names the change; body names the why and which tests pass.
 
 ---
 
 ## LEAN — Lean Software Development
 
-### `build-quality-in`
+### Build quality in
 
-**Source:** LEAN. **Cite as:** `LEAN/build-quality-in`.
+Tests are run, not just written. A commit on hope is a commit that didn't run the tests.
 
-Tests are run, not just written. A commit without recent test-run evidence in `.tbd/action-trace.jsonl` is a commit on hope.
+**Watch for:** committing without running the test suite for the changed area; relying on "I'll catch it in CI"; running only one test for a change that touches three.
 
-**Veto when:** `pending-action.json.tool == "Bash"` and `intent_str` is a commit AND no test-run entry appears in `action-trace.jsonl` since the most recent code change in the diff.
+**Recovery:** run the tests. If they pass, commit. If they fail, the commit is the wrong action — fix or revert.
 
-**Veto remedy:** run the tests. If they pass, re-propose. If they fail, the commit is the wrong action.
+### Amplify learning
 
-### `amplify-learning`
+Recurring overrides on the same principle indicate a rule that needs revision, not a bypass to repeat. If the pair (or the human) raises the same objection three times across a session and you override each time, the rule itself is wrong for this context — or you are, but reflexively rather than reasoning.
 
-**Source:** LEAN. **Cite as:** `LEAN/amplify-learning`.
+**Watch for:** the same objection arising repeatedly with the same brush-off; principles being treated as friction to bypass rather than evidence to engage with.
 
-Recurring overrides on the same principle indicate a rule that needs revision, not a bypass to repeat. The dissent log surfaces patterns; this principle authorises the navigator to raise a meta-veto when the pattern is unmistakable.
+**Recovery:** halt the work unit. Sit with the pattern. Either accept the principle (the pair is right and you've been wrong), tighten it (the principle is right but the language is unclear), or document a project-specific exception (the principle genuinely doesn't fit *this* project and we're going to be honest about that).
 
-**Veto when:** `dissent-log.jsonl` shows the same principle vetoed-then-overridden 3+ times in the current session.
-
-**Veto remedy:** halt the work unit. The human reviews the override pattern in `/oh-my-tbd:retro` and either tightens the rule (project-level addition), loosens it (rare; project-level config override), or accepts the principle is genuinely contested in this project (document in `.tbd/invariants.md`).
-
-### `eliminate-waste`
-
-**Source:** LEAN. **Cite as:** `LEAN/eliminate-waste`.
+### Eliminate waste
 
 Dead code is waste even if it does no immediate harm — it confuses readers, hides defects, and weights every refactor.
 
-**Veto patterns:**
+**Watch for:**
 - New function with no callers (and not exported as public API)
 - Branch in code that no test exercises and no caller reaches
 - Commented-out block more than one line
 - Imports / dependencies retained "in case"
 - Configuration values read from but never set, or set but never read
 
-**Veto remedy:** delete the dead code. If the deletion is risky, declare it as a separate `refactor` commit so its blast radius is isolated.
+**Recovery:** delete the dead code. If the deletion is risky, do it as a separate `refactor` commit so its blast radius is isolated.
 
 ---
 
-## Feature-flag policy
+## Feature-flag posture
 
-Per D-004: all new feature work lands behind a flag, unless verifiably non-interacting with existing code. Per D-029: migrations and deletions never qualify for the no-flag exception.
+The pilot prompt frames the working rule: new feature work typically lands behind a flag if the surface is user-visible. The flag registry lives at `.tbd/flags.yaml` (see [SCHEMAS.md](../SCHEMAS.md)).
 
-### `feature-flag-required`
+The post-reset plugin does not mechanically check for missing flags — that classification was rubric-as-code, deleted in the session-9 reset. The discipline now lives in the pilot's judgement and the pair's voice. Two practical heuristics worth preserving:
 
-**Source:** TBD (via `flags.yaml` policy). **Cite as:** `TBD/feature-flag-required`.
-
-**Veto when:** `current-intent.json.type == "feature"` AND `flag_name` is absent or `null` AND non-interaction is not provable (see `non-interaction-criterion` below).
-
-**Veto remedy:** register a flag in `.tbd/flags.yaml`, wrap the new code path in a flag check, and re-propose.
-
-### `flag-call-site-registered`
-
-**Source:** TBD (via `flags.yaml` policy). **Cite as:** `TBD/flag-call-site-registered`.
-
-**Veto when:** the diff adds a flag check for `<flag>` AND `.tbd/flags.yaml` does not list `<flag>` with a `call_sites` entry pointing at the file/line.
-
-**Veto remedy:** add the flag entry to `flags.yaml` (or update its `call_sites` list) in the same commit.
-
-### `migration-no-flag-exception`
-
-**Source:** TBD. **Cite as:** `TBD/migration-no-flag-exception`.
-
-**Veto when:** the diff touches schema (migration files, DB DDL, ORM model definitions that drive migrations) OR removes code that is reachable from any entry point in `entry-points.yaml`, AND `flag_name` is absent. Non-interaction layers do NOT exempt this.
-
-**Veto remedy:** flag the migration (expand step behind a flag; cut-over behind a separate flag; contract step behind a third flag if necessary) OR perform under formal change-management with explicit human override.
+- **Migrations and deletions don't take the no-flag shortcut.** Even if a migration looks like additive-only at the schema layer, it changes runtime behaviour for every reader; flag the expand step separately from the contract step.
+- **Test-only and docs-only diffs don't need flags.** The check is "does anything in production reach this code at runtime?" If no, no flag.
 
 ---
 
-## Non-interaction criterion (the no-flag exception, per D-004 + D-027)
+## What's no longer in this file
 
-Layered. A diff qualifies for the no-flag exception only if all applicable layers clear it. Per D-027 conservative bias: when a layer is unavailable for the language and dynamic-wiring patterns are present, the answer is refuse.
-
-### `l0-additive-only`
-
-**Source:** TBD. **Cite as:** `TBD/l0-additive-only`.
-
-**Veto when:** the diff modifies any existing file (vs. only adding new ones). Modification means insertion or deletion within a pre-existing file.
-
-**Veto remedy:** either accept the flag requirement (modifications can interact) OR isolate the new code to new files.
-
-### `l1-lexical-isolation`
-
-**Source:** TBD. **Cite as:** `TBD/l1-lexical-isolation`.
-
-**Veto when:** any symbol introduced in the new files appears (as identifier, string reference, decorator, or import path) anywhere in pre-existing files in the repo.
-
-**Veto remedy:** rename to avoid collision OR accept the flag requirement.
-
-### `l2-reachability`
-
-**Source:** TBD. **Cite as:** `TBD/l2-reachability`. Requires a language adapter (see `adapters/` — Python, TypeScript, Go, C#, Elixir in v1 per D-028).
-
-**Veto when:** the language adapter reports any new symbol reachable from any entry point declared in `.tbd/entry-points.yaml`.
-
-**Veto remedy:** accept the flag requirement (the code is actually wired in).
-
-### `dynamic-wiring-no-l2`
-
-**Source:** TBD. **Cite as:** `TBD/dynamic-wiring-no-l2`.
-
-**Veto when:** the diff contains dynamic-dispatch patterns (decorators, `importlib`, plugin registries, reflection, dependency-injection containers) AND no L2 adapter is available for this language.
-
-**Veto remedy:** accept the flag requirement. Dynamic wiring is the case L2 was designed to catch; without it the only safe answer is "flag it."
-
----
-
-## Skip-detection (D-043)
-
-### `skip-detection`
-
-**Source:** TBD. **Cite as:** `TBD/skip-detection`. Raised by the veto-check hook, not the navigator — included here for completeness.
-
-**Veto when:** a state-changing tool call (`Write`, `Edit`, `NotebookEdit`, mutating `Bash`) arrives at the hook with no matching `.tbd/pending-action.json` on disk.
-
-**Veto remedy:** the pilot must declare intent (`/oh-my-tbd:start`) if no current intent exists, then write `.tbd/pending-action.json` describing the action, then invoke the navigator subagent, before the tool fires.
-
----
-
-## What is NOT in this file
-
-- **Project invariants** — go in `.tbd/invariants.md` (e.g. "all migrations expand/contract", "auth always goes through `verifyToken`").
-- **Project-level principle additions** — go in `.tbd/principles-additions.md` (additive to this file).
-- **Per-language reachability rules** — encoded in `adapters/<lang>/`; navigator invokes them via the L2 layer.
-- **Override and exception management** — see `SCHEMAS.md §5` (`overrides.jsonl`).
+For readers comparing against an earlier draft: the non-interaction criterion (L0/L1/L2/L3 layers, language adapters, dynamic-wiring patterns), the skip-detection hook check, and the rubric-as-code framing ("Veto when / Veto remedy" with `pending-action.json` field references) were retired in the session-9 architectural reset. See the post-reset section of [DESIGN-LOG.md](../DESIGN-LOG.md) for what replaced them.
 
 ---
 
 ## Versioning
 
-This file is read by the navigator at every review. Changes here change the navigator's behaviour repo-wide.
-
-Per `VALIDATION.md §1` quality bar: any change to this file must pass the adversarial corpus regression suite (`corpus/`, per D-021) before shipping. Detection rate must remain ≥ 90% across all principle categories.
-
-Version: **0.1.0 — walking-skeleton floor.** Subsequent revisions land via standard `oh-my-tbd` discipline (self-dogfood, D-041).
+Version: **0.2.0 — post-reset reference reading.** The file is no longer load-bearing for runtime behaviour; it's coaching material. Changes to the pilot's actual practice are made in `agents/pilot.md`.
