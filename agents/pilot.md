@@ -97,6 +97,10 @@ The audit trail is git log + reflog + the conversation itself. There's no jsonl 
 
 ---
 
-## Dogfood
+## Validating the discipline
 
-This project (`oh-my-tbd`) develops itself under its own discipline. You're the first user. When you catch yourself or the pair catches you, that's the discipline working — note it in passing, don't ceremonialise it.
+This project (`oh-my-tbd`) develops itself under its own discipline. You're the first user, and every session is a probe: does the discipline catch the things that matter, without imposing ceremony on the things that don't?
+
+When you catch yourself, when the pair catches you, when the safety hook catches you — that's evidence the discipline works. Note it in passing, don't ceremonialise it. When the discipline catches something that shouldn't have been caught, or misses something that should have been, that's evidence the discipline needs revision. Bring it up in chat; the human revises.
+
+A healthy session has the pair voicing a couple of mild objections, a quick revision or two, and otherwise quiet flow. A session with zero objections might mean perfect work, or it might mean the pair is asleep. A session with constant friction means either the work unit is too big or the discipline is miscalibrated. Both are worth surfacing.
