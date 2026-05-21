@@ -2,8 +2,8 @@
 
 Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-22 session-11 — **post-reset docs rewrite complete**. 9 slices shipped (1 → 9). The four design docs *plus* `principles/principles.md` now match what's on disk; the architectural reset is fully reflected in both code and prose.
-- **Trunk state:** main at `e09eb42` (slice 8 — principles.md rewrite). Slice 9 patches this hand-off doc.
+- **Last session ended:** 2026-05-22 session-11 — **post-reset docs rewrite complete**. 11 slices shipped (1 → 11). The four design docs, `principles/principles.md`, *and* `.claude-plugin/plugin.json` (the user-facing manifest) now match what's on disk; the architectural reset is fully reflected in both code and prose.
+- **Trunk state:** main at `fd40871` (slice 10 — plugin.json fix). Slice 11 patches this hand-off doc.
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
@@ -26,6 +26,30 @@ Session-11 closes the deletion/rewrite era. The plugin's surface is now:
 
 The three forward-looking decisions deferred from session-11 (sidecar mechanism, skill inventory, value-prop framing) only earn data once the plugin has been lived in for a few real sessions. Don't open them speculatively.
 
+### Before declaring a session done: run the drift check
+
+Session-11 earned its second-most-useful finding from a simple discipline: **before declaring done, grep every post-reset surface for pre-reset machinery terms and check that any hits are intentional negations, not stale claims.**
+
+The check that worked this session:
+
+```bash
+for f in agents/pilot.md skills/pair/SKILL.md bin/tbd.js hooks/hooks.json \
+         test/hook/test-s3-narrow-refuse-on-trunk.sh principles/principles.md \
+         settings.json .tbd/flags.yaml README.md COMPONENTS.md SCHEMAS.md \
+         VALIDATION.md NEXT-SESSION.md .claude-plugin/plugin.json; do
+  echo "--- $f ---"
+  grep -nE "(navigator(-| subagent| review| veto)|veto\\.json|pending-action|action-trace|dissent-log|navigator-questions|pilot-responses|session-state\\.json|adversarial corpus|L2 reachability|language adapter|skip-detection hook|runArchivePa|runVetoCheck|pa-tool-match)" "$f" 2>/dev/null | head -15
+done
+```
+
+Every hit is either (a) an intentional "no longer here" negation per (r2), or (b) a stale claim that needs fixing. The rule is binary — if a post-reset doc claim names pre-reset machinery without explicitly retiring it, you have drift.
+
+This check caught **two** real drifts in session-11 *after* the apparent close-out:
+- `principles/principles.md` (slice 8) — file framed as rubric-as-code with navigator/veto.json/L0-L3 sections despite COMPONENTS.md claiming it's reference reading.
+- `.claude-plugin/plugin.json` (slice 10) — the user-facing manifest's description still advertised "pilot/navigator agent pair, hard-block veto + override audit." The most outward-facing string in the whole repo, and it was lying.
+
+Run this check at the next "I think I'm done" moment. Cheap, mechanical, reliable.
+
 ### Signals worth watching during the first lived-in session
 
 - **Where does the pair voice (the human, for now) actually fire?** Which of the four objections (missing test / oversized batch / divergence-age / mixed concerns) come up most? Which never come up? That's data about which a future sidecar should prioritise.
@@ -39,7 +63,7 @@ Notes go in the conversation; commit messages carry the narrative; `git log` is 
 
 ## What shipped this session
 
-9 slices, all on `origin/main`:
+11 slices, all on `origin/main`:
 
 | # | Commit | Type | Slice | Net |
 |---|---|---|---|---|
@@ -49,22 +73,25 @@ Notes go in the conversation; commit messages carry the narrative; `git log` is 
 | 4 | `63f574d` | docs | `DESIGN-LOG.md` annotated supersedence per (r2) — fresh top section + ~28 superseded IDs | +94 |
 | 5 | `9fa8314` | docs | Cross-doc-link sweep: pilot.md filename alignment + README status polish + NEXT-SESSION reading-order fix | 0 |
 | 6 | `1c7a86e` | chore | Delete orphan `test/skill/test-status-walking-skeleton.sh` | -128 |
-| 7 | `3cc7c80` | docs | NEXT-SESSION.md close-out (initial, since patched in slice 9) | -57 |
-| 8 | `e09eb42` | docs | Rewrite `principles/principles.md` as reference reading (280 → 178 lines) | -102 |
-| 9 | _(this commit)_ | docs | Patch NEXT-SESSION.md close-out to reflect slice 8 | ~ |
+| 7 | `3cc7c80` | docs | NEXT-SESSION.md close-out (initial, since patched in slices 9 + 11) | -57 |
+| 8 | `e09eb42` | docs | Rewrite `principles/principles.md` as reference reading (280 → 178 lines, drift-check pass 1) | -102 |
+| 9 | `dc83372` | docs | Patch close-out to reflect slice 8 | +7 |
+| 10 | `fd40871` | fix | Align `.claude-plugin/plugin.json` with post-reset shape — manifest description + version (drift-check pass 2) | 0 |
+| 11 | _(this commit)_ | docs | Patch close-out to reflect slice 10 + add drift-check guidance bullet | ~ |
 
-**Total: ~-950 lines from this session.** Combined with sessions 9+10 (~-1,800 from the reset), the project is roughly **-2,750 lines** lighter than its pre-reset peak, while now describing what's actually shipped.
+**Total: ~-942 lines from this session.** Combined with sessions 9+10 (~-1,800 from the reset), the project is roughly **-2,742 lines** lighter than its pre-reset peak, while now describing what's actually shipped.
 
 ### Session-11 character
 
-Quiet flow throughout. Two advisor objections that earned their keep:
+Quiet flow throughout. Three drift catches across the session — each one shipped to trunk as its own slice within minutes of being surfaced:
 
-1. At session start the advisor caught the `.tbd/current-intent` (no extension) vs. `.tbd/current-intent.json` (actual on-disk name) drift between pilot.md and disk — slice 5 resolved it.
-2. After the apparent close-out (slice 7), the advisor ran a residual-drift check and caught `principles/principles.md` still describing pre-reset rubric machinery (navigator-walks-this, veto.json, action-trace.jsonl, skip-detection, adversarial corpus, L0/L1/L2/L3) despite COMPONENTS.md claiming the file is "reference reading" — slice 8 rewrote it as actual reference reading, and slice 9 patched this hand-off doc to match.
+1. **Pre-substantive-work** (advisor at session start): `.tbd/current-intent` (no extension, per pilot.md) vs. `.tbd/current-intent.json` (actual on-disk name) → slice 5.
+2. **Post-apparent-close-out** (advisor drift-check pass 1): `principles/principles.md` still framed as rubric-as-code despite COMPONENTS.md claiming reference-reading → slice 8 → slice 9 (close-out patch).
+3. **Post-second-apparent-close-out** (drift-check pass 2): `.claude-plugin/plugin.json` manifest advertising "pilot/navigator pair, hard-block veto + override audit" — the most outward-facing string in the repo, and lying about the product → slice 10 → slice 11 (this patch).
 
-No mixed-concerns issues, no oversized batches, no divergence creeping. Each slice was a single declarable thing, shipped to trunk within a few minutes. The safety-hook regression test stayed GREEN throughout.
+No mixed-concerns issues, no oversized batches, no divergence creeping. Each slice was a single declarable thing. The safety-hook regression test stayed GREEN throughout.
 
-The two advisor catches are the most interesting datum from the session: when a session believes it is "done", a residual-drift check against the docs' own claims still found something to fix. That's a reliable signal worth keeping for session-12 onward — apparent done isn't done until the doc-claims-against-disk-content check passes.
+**The reliable meta-finding:** every "I think I'm done" moment this session had one more drift waiting. The drift-check (see priority-1 section above) caught both post-close-out cases mechanically. Capture this discipline, not just the anecdote.
 
 ---
 
@@ -107,7 +134,7 @@ Probably yes, plugin earns its keep — worth confirming in DESIGN-LOG as a fres
 1. This file
 2. `README.md` — current user-facing surface (post-reset)
 3. `agents/pilot.md` — the system prompt session-12 loads by default
-4. `git log --oneline -10` — see the 9-slice docs-rewrite session
+4. `git log --oneline -15` — see the 11-slice docs-rewrite session
 5. `COMPONENTS.md`, `SCHEMAS.md`, `VALIDATION.md`, `DESIGN-LOG.md` — the docs now match the code; the post-reset section at the top of `DESIGN-LOG.md` ratifies the session-9 framing
 
 ## Quick-resume commands
@@ -126,7 +153,7 @@ node bin/tbd.js version                            # should print "oh-my-tbd 0.1
 
 Per (r2): history preserved; supersession explicit.
 
-- **Session 11** (2026-05-22, this session) — **post-reset docs rewrite complete**. 9 slices: COMPONENTS / SCHEMAS / VALIDATION full rewrites, DESIGN-LOG annotated supersedence (session-9 (r2)), cross-doc-link sweep, orphan-test deletion, close-out, principles.md rewrite (advisor-caught residual drift), and this hand-off patch. Docs now match code.
+- **Session 11** (2026-05-22, this session) — **post-reset docs rewrite complete**. 11 slices: COMPONENTS / SCHEMAS / VALIDATION full rewrites, DESIGN-LOG annotated supersedence (session-9 (r2)), cross-doc-link sweep, orphan-test deletion, close-out, principles.md rewrite (drift-check pass 1), close-out patch, plugin.json manifest fix (drift-check pass 2), and this final hand-off patch. Docs *and* the user-facing manifest now match code; the drift-check pattern is captured as a session-12 guidance bullet.
 - **Session 10** (2026-05-22) — **architectural-reset thinning complete**. 8 slices: pilot.md rewrite + Validating-the-discipline section + pair stub + **hook collapse to s3 (the pivotal slice)** + delete navigator + delete dead skills + delete runtime files + README cleanup with stale-notice headers on the three docs deferred to session-11.
 - **Session 9** (2026-05-21) — **architectural reset**. Values-pass produced (b2)+(b3)+per-turn+tiny-note+(s3)+(f1)+(r2)+(c2). Slices 1+2 shipped: `804065a` (counter machinery removed) and `cc63d72` (README override refs).
 - **[Session 8](sessions/session-8.md)** (2026-05-21) — `/oh-my-tbd:status` walking-skeleton landed. Intent-005 (discuss-skill) started but step 2 deferred; **now superseded by session-9 reset**.
