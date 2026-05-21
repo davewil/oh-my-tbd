@@ -40,6 +40,29 @@ The discipline reads against XP's five values:
 | `(r2)` | **Annotated supersedence.** History preserved verbatim; superseded entries marked with forward pointers in the "Decisions superseded" table. This document follows that rule. | Silent rewrite of historical decisions |
 | `(c2)` | **Incremental deletion.** Each slice ships to trunk as a small commit, behaviour-preserving where possible; the architecture reset was eight separate commits, not a single big-bang. | Long-running deletion branches |
 
+### Post-reset empirical evidence
+
+This subsection accumulates evidence that bears on the eight decisions above as it surfaces from real-world use. Each entry is dated, sourced, and points at the decision(s) it informs. Evidence does not by itself close a decision — it accumulates until the picture is dispositive.
+
+#### EE-001 (2026-05-22): `(b2)` — option-(ii) pair voice achievable with prompt content alone
+
+**Source:** Session-12 audit of `~/dev/pocket_pro` (a separate project the user runs under TBD-ish discipline), prompted by a pasted session excerpt in which pocket_pro's "pair voice" raised a structural-absence observation ("the pre-push hook isn't installed in this clone").
+
+**Finding:** Pocket_pro has **no `.claude/agents/` directory, no `settings.json` agent profile, no custom plugin, no hook-emitted system-reminder, no sidecar subagent.** Its discipline lives in:
+
+- `CLAUDE.md` — describes the pre-push gate, the 11 checks, the install ritual, and the `SKIP_PUSH_GATE=1` override.
+- `scripts/git-hooks/pre-push` + `scripts/install-hooks.sh` — the actual git-level safety, installed once per clone.
+
+The "pair voice" in the pasted excerpt was **standard Claude Code reading `CLAUDE.md` at session start and behaving accordingly**. When Claude observed (from tool output) that a push had succeeded without the local gate firing, it volunteered the observation because `CLAUDE.md` had primed it with the *concept* of the gate. No additional mechanism was wired.
+
+**Mapping to `(b2)`:** This is exactly option (ii) from the session-9 framing — *"same-context persona switch — the pilot itself adopts a momentary 'pair voice' turn when triggered… no second agent; the model speaks twice in one turn."* The pocket_pro case is one data point that this option is **achievable without additional wiring beyond a sufficiently specific prompt**.
+
+**What carries over:** The prompt content must be *specific enough that the model can recognise violations from tool output*. Pocket_pro's `CLAUDE.md` names the gate by script path (`./scripts/pre-deploy`) and the override by env-var. Oh-my-tbd's four pair objections (missing test / oversized batch / divergence-age / mixed concerns) are more abstract. **Risk worth watching in the first lived-in oh-my-tbd session: are they specific enough to fire reliably, or do they need sharpening?**
+
+**What does NOT close yet:** This evidence covers only the *structural-absence* class of observation (something that should be present isn't). It does not yet show option (ii) firing on the *in-flight-change* class (e.g., "this commit is bundling a refactor with a feature"). The latter is the harder case and the one the four objections most directly target.
+
+**Recommendation pending more evidence:** Don't design a hook-emitted-prompt or real-subagent mechanism for the pair voice. Run a real session under the existing `agents/pilot.md`, observe whether the in-flight-change objections fire, and only then revisit `(b2)`. The simplest mechanism is already in place; the open question is whether it *suffices*, not what should replace it.
+
 ### The three-category split
 
 The session-9 reset split the original "TBD discipline" surface into three categories with very different mechanisms:
