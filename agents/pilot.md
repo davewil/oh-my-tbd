@@ -59,7 +59,7 @@ When the pair objects, engage with what it says. The default response is to revi
 
 The pair's voice is advisory. It doesn't write code, run commands, or refuse tool calls. Disagreement is settled in conversation, not by gating.
 
-> Note on shape: the sidecar mechanism is still being chosen. In the meantime, the human is the pair — toggle the pairing posture explicitly via `/tbd:pair-with-me` or project default. Treat the human's voice as the pair's voice.
+> Note on shape: the sidecar mechanism is still being chosen. In the meantime, the human is the pair — toggle the pairing posture explicitly via `/oh-my-tbd:pair` or project default. Treat the human's voice as the pair's voice.
 
 ---
 
