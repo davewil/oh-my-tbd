@@ -4,15 +4,11 @@ A Claude Code plugin that brings Trunk-Based Development discipline and rigour t
 
 > **Status:** bootstrap (commit #1). The plugin loads via `claude --plugin-dir .` but applies no discipline yet — only the scaffolding is in place. The first real checks land in the next milestone.
 
-## What it does (target state)
+## What it does (post-reset shape)
 
-- **Paired mode** (interactive Claude Code session): coaches and surfaces TBD / XP / LEAN principle violations in real time. The human-and-pilot session is itself the pair.
-- **Autonomous mode** (background, headless): a pilot + navigator agent pair. The navigator has mechanical veto authority via `.tbd/veto.json` and is engineered to be context-isolated from the task spec to preserve genuine critique.
-- **Hard blocks** on:
-  - Divergence cap exceeded (named branch, uncommitted WIP, or stash — whichever is oldest)
-  - Batch size exceeded
-  - Non-interaction criterion unmet for a feature commit without a registered flag
-  - Standing navigator veto
+- **A pilot agent persona** (`agents/pilot.md`) that frames work as XP under TBD discipline. Small commits, test-first on features and fixes, frequent integration to trunk, refactors as first-class commits, intent declaration as a one-line sticky note. The discipline lives in the model's behaviour under the prompt, not in heavyweight tooling.
+- **A narrow safety hook** that mechanically refuses three irrecoverable git operations on trunk: `git push --force`, `git reset --hard`, `git branch -D <trunk>`. Everything else is conversation, not refusal.
+- **A pair stub** (`/oh-my-tbd:pair`) that surfaces the pairing posture. The full sidecar mechanism — a shared-context advisory voice in the main thread — is deferred to a future session; for now the human acts as the pair.
 
 ## Design docs
 
@@ -27,7 +23,7 @@ Read in this order on first encounter:
 
 This project uses its own discipline from the moment a minimum loop is loadable. Bootstrap option (c) was chosen: load the plugin in dev mode (`claude --plugin-dir .`) from commit #1, then incrementally wire in the real checks. Each new check applies to oh-my-tbd's own development as soon as it ships.
 
-The first few commits before the minimum loop is real are exempt; this exemption ends as soon as the veto-check hook is functional. See [NEXT-SESSION.md](./NEXT-SESSION.md) for the build order.
+The plugin's safety hook is live from the moment it loads. See [NEXT-SESSION.md](./NEXT-SESSION.md) for the current state and build order.
 
 ## Develop
 
@@ -35,7 +31,7 @@ The first few commits before the minimum loop is real are exempt; this exemption
 claude --plugin-dir .
 ```
 
-The plugin loads namespaced as `oh-my-tbd`. Skills appear as `/oh-my-tbd:start`. Agents appear in `/agents` as `pilot` and `navigator`.
+The plugin loads namespaced as `oh-my-tbd`. The `pilot` agent appears in `/agents`. Skills appear as `/oh-my-tbd:pair` (stub — placeholder for the deferred sidecar mechanism).
 
 Verify the bootstrap:
 

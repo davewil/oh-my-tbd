@@ -1,9 +1,11 @@
 # TBD Customisation Suite — Component Inventory (v0 sketch)
 
+> ⚠️ **This document describes the pre-reset architecture.** Session-9 (2026-05-21) ratified a deep architectural reset that removed the pa-coordination / navigator-subagent / dissent-log machinery in favour of a thin XP-prompt + narrow-safety-hook shape. Most of the components listed below were deleted in slices 6–9. A post-reset rewrite is pending — see [NEXT-SESSION.md](./NEXT-SESSION.md) for the current shape.
+
 Companion to `DESIGN-LOG.md`. Sketches every component implied by the ratified policy decisions.
 Not yet a build plan — that comes after walking-skeleton scoping.
 
-- **Status:** sketch
+- **Status:** sketch (pre-reset; rewrite pending)
 - **Started:** 2026-05-19
 
 ---

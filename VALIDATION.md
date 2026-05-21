@@ -1,8 +1,10 @@
 # oh-my-tbd — Validation Plan (v0)
 
+> ⚠️ **This document describes the pre-reset architecture.** Session-9 (2026-05-21) ratified a deep architectural reset that removed the navigator subagent and the corpus-detection-rate / veto-rate-stability metrics anchored on it. The post-reset validation surface is much smaller: one hook test (`test/hook/test-s3-narrow-refuse-on-trunk.sh`, 11 cases) and human-judged dogfood feedback on whether the pilot prompt produces XP behaviour. A post-reset rewrite is pending — see [NEXT-SESSION.md](./NEXT-SESSION.md) for the current shape.
+
 What "v0 done" looks like. Numbers are placeholders pending first telemetry; calibrated empirically during dogfooding.
 
-- **Status:** skeleton
+- **Status:** skeleton (pre-reset; rewrite pending)
 - **Started:** 2026-05-19
 - **Companion to:** `DESIGN-LOG.md`, `COMPONENTS.md`, `SCHEMAS.md`
 

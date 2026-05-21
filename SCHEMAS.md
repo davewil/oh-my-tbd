@@ -1,8 +1,10 @@
 # TBD Customisation Suite — `.tbd/` Schemas (v0)
 
+> ⚠️ **This document describes the pre-reset architecture.** Session-9 (2026-05-21) ratified a deep architectural reset that removed the filesystem-based pilot↔navigator message bus (pending-action.json, veto.json, navigator-questions.jsonl, pilot-responses.jsonl, dissent-log.jsonl, session-state.json — all deleted in slice 9). The post-reset data contract is a single file: `.tbd/current-intent.json` as a one-line sticky note, plus `.tbd/flags.yaml` for the flag registry. A post-reset rewrite is pending — see [NEXT-SESSION.md](./NEXT-SESSION.md) for the current shape.
+
 The data contract for the filesystem-based message bus between pilot, navigator, hooks, and skills. Companion to `DESIGN-LOG.md` and `COMPONENTS.md`.
 
-- **Status:** v0 draft
+- **Status:** v0 draft (pre-reset; rewrite pending)
 - **Started:** 2026-05-19
 - **Format conventions:** YAML for human-edited config, JSON for transient state, JSONL for append-only logs, Markdown for human-readable surfaces. All files include a top-level `version` field on first write.
 
