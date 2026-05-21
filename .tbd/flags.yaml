@@ -15,3 +15,12 @@ flags:
         function: "/oh-my-tbd:status"
     owner: oh-my-tbd
     # retire_by intentionally omitted — walking-skeleton; revisit at Mode B transition
+
+  tbd_discuss_skill:
+    created: 2026-05-21
+    created_for_intent: intent-2026-05-21-005
+    status: active             # active | retiring | removed
+    targeting_summary: "0% rollout — gated by presence of skills/discuss/SKILL.md (Layer 1 walking-skeleton convention)"
+    call_sites: []             # populated in the subsequent pa when skills/discuss/SKILL.md lands (mirrors 10a16cd → ab15365 sequencing)
+    owner: oh-my-tbd
+    # retire_by intentionally omitted — walking-skeleton; revisit at Mode B transition
