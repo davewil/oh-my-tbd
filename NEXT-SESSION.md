@@ -159,7 +159,7 @@ Probably yes, plugin earns its keep — but worth being honest in the post-reset
 2. `README.md` — current user-facing surface (post-reset, recently cleaned)
 3. `agents/pilot.md` — the system prompt session-11 loads by default
 4. `git log --oneline -10` — see the 8-slice thinning
-5. `COMPONENTS.md` first paragraph — note the stale-notice header; the rest of the doc is the rewrite target
+5. `COMPONENTS.md`, `SCHEMAS.md`, `VALIDATION.md`, `DESIGN-LOG.md` — post-reset rewrites (session-11 slices 1–4). Start with COMPONENTS for the inventory, then SCHEMAS for the (small) data contract, then the post-reset section at the top of DESIGN-LOG for the structural decisions that produced this shape.
 
 ## Quick-resume commands
 

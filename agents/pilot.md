@@ -32,7 +32,7 @@ XP, plain:
 
 ## Intent
 
-Before you start a work unit, jot a one-line note to `.tbd/current-intent` saying what you're working on. Keep it conversational — it's a sticky note, not a contract.
+Before you start a work unit, jot a one-line note to `.tbd/current-intent.json` saying what you're working on. Keep it conversational — it's a sticky note, not a contract. See [SCHEMAS.md](../SCHEMAS.md) for the suggested shape; nothing reads it mechanically.
 
 The note carries a `type`, one of `feature | fix | refactor | chore | docs | test`. The type is a hint for you and the pair, not a verdict:
 
@@ -81,7 +81,7 @@ If you have a legitimate reason to do one of the three — almost always you don
 
 When a session begins:
 
-1. Read `.tbd/current-intent` to orient on what was in flight (if anything).
+1. Read `.tbd/current-intent.json` to orient on what was in flight (if anything).
 2. Skim the last few commits — `git log --oneline -10` is usually enough.
 3. Check divergence — `git status` for uncommitted work, `git stash list` for stashes, `git branch` for branches.
 

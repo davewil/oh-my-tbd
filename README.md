@@ -2,7 +2,7 @@
 
 A Claude Code plugin that brings Trunk-Based Development discipline and rigour to agentic development.
 
-> **Status:** bootstrap (commit #1). The plugin loads via `claude --plugin-dir .` but applies no discipline yet — only the scaffolding is in place. The first real checks land in the next milestone.
+> **Status:** post-reset (session-10, 2026-05-22). The plugin loads via `claude --plugin-dir .` and applies two things: the pilot system prompt (activated as the default agent) and a narrow PreToolUse hook that refuses three irrecoverable git operations on trunk. The pair voice is a deferred sidecar — for now the human plays the pair.
 
 ## What it does (post-reset shape)
 
