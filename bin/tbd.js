@@ -194,154 +194,64 @@ async function runArchivePa() {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd();
   const tbdDir = path.join(projectDir, '.tbd');
 
-  try {
-    // D-056 symmetry: navigator subagent carve-out for archive-pa. The
-    // navigator's reactive review tool calls (e.g. Write to dissent-log
-    // on veto_lifted / veto_raised) should not consume the pilot's pa —
-    // pa is the pilot's pre-declared intent for the NEXT substantive
-    // action; the navigator is observing, not executing. Mirrors the
-    // veto-check carve-out at line 73 verbatim. Empirically discovered
-    // when pa-082 / pa-083 / pa-086 were consumed by their own navigator
-    // reviews in intent-2026-05-20-013 (after pa-081 dropped the masking
-    // predicate). Regression-covered by test-q036-navigator-bypass-in-archive-pa.sh.
-    // Note (intent-2026-05-21-004): counter re-derivation still fires for
-    // navigator events via the finally-block below — every veto_raised /
-    // veto_lifted event arrives via a navigator Write, so counts must catch
-    // up on that fire rather than lag one pilot tool-call.
-    if (hookInput && hookInput.agent_type === 'oh-my-tbd:navigator') {
-      return noop('tbd archive-pa: navigator subagent bypasses pa consumption (D-056 symmetry)');
-    }
-
-    // Note: no success predicate. Per D-058 (intent-2026-05-20-011 spike, n=4 corpus
-    // across Edit/Write/Bash + 2 distinct Bash failure modes), CC PostToolUse fires
-    // only on tool success — the failure branch was provably unreachable. Per D-057,
-    // real CC payloads also have no `tool_response.success` field, so the prior
-    // `toolResponse.success !== true` predicate was failing-closed on the production
-    // shape and silently breaking archive-pa since D-052 landed. Removed under
-    // intent-2026-05-20-013; regression-covered by test-d052-archive-on-success.sh
-    // (captured-real-shape Edit payload fixture).
-
-    // Self-archive carve-out: when the tool call's target IS .tbd/pending-action.json,
-    // the call updated the pa rather than consuming one. Archiving the freshly-written
-    // pa would trap the pilot in a no-pa state and block the next non-.tbd/ action.
-    // Discovered empirically post-D-052-landing; would block all subsequent work without this.
-    // Regression-covered by test/hook/test-d052-self-archive-skip.sh.
-    const targetPath = (typeof toolInput.file_path === 'string') ? toolInput.file_path : '';
-    if (targetPath.endsWith('/.tbd/pending-action.json') || targetPath.endsWith('\\.tbd\\pending-action.json')) {
-      return noop('tbd archive-pa: tool target is pending-action.json itself; skipping self-archive');
-    }
-
-    if (!fs.existsSync(tbdDir)) {
-      return noop('tbd archive-pa: project not initialised (no .tbd directory)');
-    }
-
-    const pendingPath = path.join(tbdDir, 'pending-action.json');
-    if (!fs.existsSync(pendingPath)) {
-      return noop('tbd archive-pa: no pending-action to archive');
-    }
-
-    const pending = readJson(pendingPath);
-    if (!pending || !pending.id) {
-      return noop('tbd archive-pa: pending-action unreadable or missing id');
-    }
-
-    const sessionState = readJson(path.join(tbdDir, 'session-state.json'));
-    const sessionId = (sessionState && sessionState.session_id) || 'unknown-session';
-
-    const archiveDir = path.join(tbdDir, 'archive', sessionId);
-    try {
-      fs.mkdirSync(archiveDir, { recursive: true });
-      const archivePath = path.join(archiveDir, pending.id + '.json');
-      fs.copyFileSync(pendingPath, archivePath);
-      fs.unlinkSync(pendingPath);
-      return noop('tbd archive-pa: archived ' + pending.id + ' to ' + archivePath);
-    } catch (_err) {
-      return noop('tbd archive-pa: archive move failed; pa remains in place');
-    }
-  } finally {
-    // intent-2026-05-21-004: re-derive session-state.json counts.* from on-disk
-    // sources (dissent-log.jsonl, overrides.jsonl, archive/<sid>/) on every
-    // PostToolUse return path. Pure re-derivation (D-058 idempotence): re-runs
-    // with no new events produce identical counts. Soft failure per D-053.
-    if (fs.existsSync(tbdDir)) {
-      try { recomputeCounts(tbdDir); } catch (_) { /* swallow per D-053 soft variant */ }
-    }
-  }
-}
-
-// ---------- recomputeCounts (intent-2026-05-21-004) ----------
-//
-// Pure re-derivation of session-state.json counts.* from on-disk sources.
-// Per current-intent.json rubric_notes.derivation_source_of_truth:
-//   counts.vetoes_raised ← '"event":"veto_raised"' line count in dissent-log.jsonl
-//   counts.vetoes_lifted ← '"event":"veto_lifted"' line count in dissent-log.jsonl
-//   counts.overrides     ← non-empty line count of overrides.jsonl (SCHEMAS.md §5)
-//   counts.archived_pas  ← pa-*.json file count under archive/<session_id>/
-//
-// Read-modify-write preserves untouched counters (swaps, vetoes_escalated,
-// questions_asked) verbatim — YAGNI. Atomic write via tmp+rename leaves the
-// prior good state intact on crash.
-
-function recomputeCounts(tbdDir) {
-  const statePath = path.join(tbdDir, 'session-state.json');
-  const state = readJson(statePath);
-  if (!state || typeof state !== 'object') return;
-
-  const counts = (state.counts && typeof state.counts === 'object') ? state.counts : {};
-
-  let vetoesRaised = 0;
-  let vetoesLifted = 0;
-  const dissentPath = path.join(tbdDir, 'dissent-log.jsonl');
-  if (fs.existsSync(dissentPath)) {
-    try {
-      const lines = fs.readFileSync(dissentPath, 'utf8').split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.indexOf('"event":"veto_raised"') !== -1) vetoesRaised++;
-        else if (line.indexOf('"event":"veto_lifted"') !== -1) vetoesLifted++;
-      }
-    } catch (_) { /* swallow; counter falls back to 0 */ }
+  // D-056 symmetry: navigator subagent carve-out for archive-pa. The
+  // navigator's reactive review tool calls (e.g. Write to dissent-log
+  // on veto_lifted / veto_raised) should not consume the pilot's pa —
+  // pa is the pilot's pre-declared intent for the NEXT substantive
+  // action; the navigator is observing, not executing. Mirrors the
+  // veto-check carve-out at line 73 verbatim. Empirically discovered
+  // when pa-082 / pa-083 / pa-086 were consumed by their own navigator
+  // reviews in intent-2026-05-20-013 (after pa-081 dropped the masking
+  // predicate). Regression-covered by test-q036-navigator-bypass-in-archive-pa.sh.
+  if (hookInput && hookInput.agent_type === 'oh-my-tbd:navigator') {
+    return noop('tbd archive-pa: navigator subagent bypasses pa consumption (D-056 symmetry)');
   }
 
-  let overrides = 0;
-  const overridesPath = path.join(tbdDir, 'overrides.jsonl');
-  if (fs.existsSync(overridesPath)) {
-    try {
-      const lines = fs.readFileSync(overridesPath, 'utf8').split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() !== '') overrides++;
-      }
-    } catch (_) { /* swallow */ }
+  // Note: no success predicate. Per D-058 (intent-2026-05-20-011 spike, n=4 corpus
+  // across Edit/Write/Bash + 2 distinct Bash failure modes), CC PostToolUse fires
+  // only on tool success — the failure branch was provably unreachable. Per D-057,
+  // real CC payloads also have no `tool_response.success` field, so the prior
+  // `toolResponse.success !== true` predicate was failing-closed on the production
+  // shape and silently breaking archive-pa since D-052 landed. Removed under
+  // intent-2026-05-20-013; regression-covered by test-d052-archive-on-success.sh
+  // (captured-real-shape Edit payload fixture).
+
+  // Self-archive carve-out: when the tool call's target IS .tbd/pending-action.json,
+  // the call updated the pa rather than consuming one. Archiving the freshly-written
+  // pa would trap the pilot in a no-pa state and block the next non-.tbd/ action.
+  // Discovered empirically post-D-052-landing; would block all subsequent work without this.
+  // Regression-covered by test/hook/test-d052-self-archive-skip.sh.
+  const targetPath = (typeof toolInput.file_path === 'string') ? toolInput.file_path : '';
+  if (targetPath.endsWith('/.tbd/pending-action.json') || targetPath.endsWith('\\.tbd\\pending-action.json')) {
+    return noop('tbd archive-pa: tool target is pending-action.json itself; skipping self-archive');
   }
 
-  let archivedPas = 0;
-  const sessionId = (state.session_id) || 'unknown-session';
+  if (!fs.existsSync(tbdDir)) {
+    return noop('tbd archive-pa: project not initialised (no .tbd directory)');
+  }
+
+  const pendingPath = path.join(tbdDir, 'pending-action.json');
+  if (!fs.existsSync(pendingPath)) {
+    return noop('tbd archive-pa: no pending-action to archive');
+  }
+
+  const pending = readJson(pendingPath);
+  if (!pending || !pending.id) {
+    return noop('tbd archive-pa: pending-action unreadable or missing id');
+  }
+
+  const sessionState = readJson(path.join(tbdDir, 'session-state.json'));
+  const sessionId = (sessionState && sessionState.session_id) || 'unknown-session';
+
   const archiveDir = path.join(tbdDir, 'archive', sessionId);
-  if (fs.existsSync(archiveDir)) {
-    try {
-      const entries = fs.readdirSync(archiveDir);
-      for (let i = 0; i < entries.length; i++) {
-        const name = entries[i];
-        if (name.indexOf('pa-') === 0 && name.lastIndexOf('.json') === name.length - 5) {
-          archivedPas++;
-        }
-      }
-    } catch (_) { /* swallow */ }
-  }
-
-  counts.vetoes_raised = vetoesRaised;
-  counts.vetoes_lifted = vetoesLifted;
-  counts.overrides = overrides;
-  counts.archived_pas = archivedPas;
-  state.counts = counts;
-
-  // Atomic write: rename(2) is atomic within a single filesystem.
-  const tmpPath = statePath + '.tmp';
   try {
-    fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2) + '\n', 'utf8');
-    fs.renameSync(tmpPath, statePath);
-  } catch (_) {
-    try { fs.unlinkSync(tmpPath); } catch (__) { /* swallow */ }
+    fs.mkdirSync(archiveDir, { recursive: true });
+    const archivePath = path.join(archiveDir, pending.id + '.json');
+    fs.copyFileSync(pendingPath, archivePath);
+    fs.unlinkSync(pendingPath);
+    return noop('tbd archive-pa: archived ' + pending.id + ' to ' + archivePath);
+  } catch (_err) {
+    return noop('tbd archive-pa: archive move failed; pa remains in place');
   }
 }
 
