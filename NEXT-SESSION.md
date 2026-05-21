@@ -2,62 +2,66 @@
 
 Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-20 session-7 (one intent, one commit: intent-017 docs `8efe4a2` resolving the three deferred `<this commit>` placeholders in NEXT-SESSION.md L5/L6/L21 to `9e765e2` via three surgical Edits — direct application of intent-016's commit-body lesson on declaration-vs-reality drift, which held). FIRST FORMAL VETO DISPUTE IN PROJECT HISTORY: pa-121 vetoed on declaration-vs-reality drift (navigator misread mid-work-unit `git diff` as the pending Edit's effect rather than pa-120's already-applied effect); pilot dissented; navigator re-reviewed on corrected baseline and lifted, logging a durable retro note. ONE SUBSTRATE ANOMALY: pa-121 archived before its declared Edit fired — opens Q-041 for intent-019 (action-trace) design.
-- **Trunk state:** main at `8efe4a2` (intent-017 — three-Edit placeholder resolution to 9e765e2), pushed to origin (github.com/davewil/oh-my-tbd); reader can `git log -18` from HEAD for the full chain back to session-4's `515f2c9`
+- **Last session ended:** 2026-05-21 session-8 — first outside-in feature wave per session-7's strategic pivot. Intent-002 landed `/tbd:status` walking-skeleton in two commits (10a16cd flag registry; ab15365 SKILL.md + test + call-site, test GREEN 15/15). Intent-003 closed the session with NEXT-SESSION.md update and push. THREE VETO DISPUTES resolved in-session (regex tautology risk, sequencing/build-quality-in, small-batches working-tree contamination). DOGFOOD OUTPUT against real `.tbd/` surfaced six bites; TOP BITE = session-state counter maintenance, pinned for intent-004.
+- **Trunk state:** main at `ab15365` (intent-002 step 2 — SKILL.md + test + call_sites bundled), pushed to origin (github.com/davewil/oh-my-tbd); reader can `git log -20` from HEAD for the full chain back to session-4's `515f2c9`
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
 
 ## ▶ Next session pickup
 
-**Session-7 ended with a strategic pivot.** Every substrate fix we land surfaces another substrate need because there is no other code to test the discipline against — the dogfood loop has become recursive. **Outside-in feature work is the prioritisation function from here on.** Build the smallest top-layer skill, see what bites under real use, drop down to fix only the thing that actually bit. Don't pre-fix substrate hypothetically. The deferred queue at the bottom of this section is preserved as historical context, NOT as the active priority list.
+**Session-8 confirmed the strategic pivot works.** Building `/tbd:status` walking-skeleton (the smallest outside-in feature) surfaced six concrete bites in one dogfood run against real `.tbd/` state — two were pre-predicted (counter drift, divergence-age), four were second-order surfaces from the stale `session_id` and from running the skill mid-session. Each becomes its own narrow intent. The next session picks the top bite and drops down.
 
-### Session-8 priority 1: `/tbd:status` walking-skeleton (Layer 1)
+### Session-9 priority 1: intent-004 = session-state counter maintenance (TOP BITE)
 
-Type: **feature** (flag-required per D-004). One declarable purpose, several files.
+Type: **fix** OR **feature** (depending on framing — see below). One declarable purpose, narrow file scope.
 
-- Register the feature flag (name is pilot's call — e.g. `tbd_status_skill`)
-- Add `skills/status/SKILL.md` following the `start` / `override` pattern
-- Skill reads `.tbd/` (current-intent, dissent-log, archive count, pending-action, veto) + git state (HEAD SHA, working-tree status, divergence from origin) and formats a one-screen dashboard
-- **When a datum is missing or drifted, output `<unknown>` or `<drifted>` rather than failing** — this is the bite-surface; visible gaps drive intent-002+ next session
-- Skill output ends with a "**Next:**" line picking the right action from the state-machine below
-- Fixture-driven test: known `.tbd/` state in → known dashboard + next-suggestion out. Each state-machine row becomes a test case.
+**Why this bite first:** Highest leverage. The `<drifted>` sentinel for `vetoes_raised=0 / vetoes_lifted=0` was the strongest signal in the session-8 dogfood — the counters are demonstrably wrong (dissent-log has ~10+ veto events in this session alone, archive has 63 pa-cycles), and the SKILL.md state-machine assumes honest counters. Fix once, every future `/tbd:status` invocation gets cleaner output.
 
-### Suggestion state-machine (first-match wins, evaluated top-to-bottom)
+- **Source of truth:** `.tbd/dissent-log.jsonl` (veto_raised / veto_lifted / veto_held / human_resolved events) and `.tbd/archive/<session>/` (archived pa-cycles).
+- **Where to wire:** `bin/tbd.js` PostToolUse handler — increment the relevant `session-state.json.counts.*` field when the corresponding event fires. Per D-058, only success-path PostToolUse fires reliably (this is fine — we want counts of *completed* events anyway).
+- **Type decision:** `fix` if framed as "counters lie"; `feature` if framed as "counter machinery is new code path". Lean `fix` — the field exists, it just isn't maintained.
+- **TDD sequencing:** failing test for counter increment on a synthetic dissent-event → minimal handler → re-run inside this session and verify counter moves.
+- **Stretch goal (defer if it grows):** session_id rollover — `session-state.json.session_id` is still `s-2026-05-20-001` two days after starting. Q-037 (session_id namespace) is relevant. Likely separates into intent-005.
+
+### Six dogfood bites surfaced by session-8 (priority order — first becomes intent-004)
+
+| # | Bite | Intent-N candidate | Notes |
+|---|---|---|---|
+| 1 | **session-state counter drift** (counts vs dissent-log + archive) | intent-004 (this session's priority 1) | TOP BITE — see above |
+| 2 | **divergence-age helper missing** (all three axes `<unknown>`) | intent-005 likely | branch-age + uncommitted-WIP-age + stash-age per D-050 |
+| 3 | **session_id stale across day boundary** | intent-005 or merged with #1 | Q-037-relevant |
+| 4 | **current-intent.json `status` field convention** | intent-006 or docs | implicit-open via absent `completed_at` is brittle |
+| 5 | **archived_pas "since session start" anchor breaks when session_id is stale** | gated on #3 | resolves with session_id rollover |
+| 6 | **dissent_events "since session start" anchor ambiguous** | gated on #3 | same root as #5 |
+
+### Suggestion state-machine (reference — full version is canonical in `skills/status/SKILL.md`)
 
 | Detected state | Next suggestion |
 |---|---|
-| No `.tbd/` directory | `/tbd:init` (when implemented) — bootstrap project |
-| `.tbd/veto.json` exists with `status: standing` | Address the standing veto: revise the pa, or file dissent in `.tbd/dissent-log.jsonl` |
+| `.tbd/` directory does not exist | `/oh-my-tbd:init` (when implemented) — bootstrap project |
+| `.tbd/veto.json` exists with `status: standing` | Address the standing veto: revise the pa, or file dissent |
 | `.tbd/pending-action.json` exists & no standing veto | Invoke the navigator subagent for review |
-| No current-intent (or `status: completed`) & working tree dirty | `/tbd:start <type> "<description>"`, then declare pa for the changes |
+| No current-intent (or `status: completed`) & working tree dirty | `/oh-my-tbd:start <type> "<description>"` |
 | No current-intent & working tree clean & local ahead of origin | `git push origin main` |
 | Current-intent open & working tree clean & no pending-action | Declare next pa, or close intent |
 | Current-intent open & working tree dirty & no pending-action | Declare pa for the changes |
-| Everything clean, intent closed, nothing ahead | `/tbd:start` next work-unit (or stop) |
-| Unknown state (none of above match) | "Unknown state — manual investigation needed" + raw state dump |
+| Everything clean, intent closed, nothing ahead | `/oh-my-tbd:start` next work-unit (or stop) |
+| Unknown state | "Unknown state — manual investigation needed" + raw state dump |
 
-Future skills (`/tbd:flag`, `/tbd:audit`, `/tbd:retro`, `/tbd:doctor`, etc.) plug into new rows as they land.
+Future skills (`/oh-my-tbd:init`, `/oh-my-tbd:flag`, `/oh-my-tbd:audit`, `/oh-my-tbd:retro`, `/oh-my-tbd:doctor`, etc.) plug into new rows as they land.
 
-### Expected bites — prioritised by what actually surfaces
+### Deferred — preserved as historical context, NOT the active queue
 
-1. **Divergence age has no single source.** Branch-age + uncommitted-WIP-age + stash-age per D-050 need separate computation. Status shows `<unknown>` first run → drop down → implement divergence-age helper.
-2. **`session-state.json` counters are drifted.** Status shows `vetoes_raised: 0` while archive shows dozens → drop down → fix counter maintenance.
-3. **No canonical batch-size definition.** Working-tree diff lines? pa-cycle count? Status forces the choice → drop down → pick one and document.
-4. **Skill loading for skills beyond `start` / `override` may be untested** at the CC platform layer. If `/tbd:status` doesn't invoke → drop down → debug skill registration.
+The active queue is the six bites above. These are kept here because past sessions surfaced them and they may yet matter; pursue only if real feature use surfaces a concrete need.
 
-### Deferred — pursue only if real feature use surfaces a concrete need
-
-Preserved as historical context, NOT the active queue. The active queue is the bites above as they actually appear.
-
-- **Principle propagation** (was intent-018 priority-0) — codify small-batches=size+reviewability-not-singularity in `principles/principles.md` and the navigator rubric. Currently lives only in `0785a38`'s commit body. Pursue when the navigator next re-litigates the principle.
-- **action-trace.jsonl population** (was priority 1) — `bin/tbd.js` PostToolUse handler with handler-ordering + carve-out coverage. Will be needed for retro/audit features but NOT for `/tbd:status` itself.
-- **TS migration** (D-038, was priority 2) — chore-shaped; revisit when feature surface is larger.
-- **Bash carve-out for D-051** (was priority 3) — read-only-with-redirect Bash refused; minor pilot UX friction.
-- **session-state.json counter maintenance** (was priority 4) — likely surfaces as the first bite from `/tbd:status` above.
-- **current-intent.json cleanup convention** (was priority 5) — convention-by-precedent across sessions 2-7; codify only when a future skill needs to consume the lifecycle deterministically.
-- **Intent-011 follow-on spike** Q-039 + Q-040 (was priority 6) — gated on fresh-session capability; not blocking anything currently.
-- **Q-041 substrate anomaly** (opened intent-018) — pa-archived-without-Edit-firing; investigate when action-trace handler-ordering work touches the same code site.
+- **Principle propagation** (was intent-018 priority-0) — codify small-batches=size+reviewability-not-singularity in `principles/principles.md` and the navigator rubric. Currently lives only in `0785a38`'s commit body.
+- **`working_tree_state` pa-disclosure idiom** (NEW, session-8) — surfaced via pa-021's veto-lift. Useful for any mid-flight accumulating-bundle situation. Worth canonicalising in `principles-additions.md` or SCHEMAS.md.
+- **action-trace.jsonl population** — `bin/tbd.js` PostToolUse handler with handler-ordering + carve-out coverage. Will be needed for retro/audit features. Adjacent to intent-004 counter work; may co-land.
+- **TS migration** (D-038) — chore-shaped; revisit when feature surface is larger.
+- **Bash carve-out for D-051** — read-only-Bash refused. Surfaced twice in session-8 as friction on test-run + grep verification. Now empirically demonstrated, no longer hypothetical — still not blocking.
+- **Intent-011 follow-on spike** Q-039 + Q-040 — gated on fresh-session capability; not blocking anything currently.
+- **Q-041 substrate anomaly** (opened intent-018) — pa-archived-without-Edit-firing. Did NOT reproduce in session-8 (15 pa-cycles, all clean). Either narrowed surface (only navigator-dissent-log-write path?) or the pattern is intermittent. Re-investigate when action-trace handler-ordering work touches the same code site.
 
 ---
 
@@ -73,12 +77,17 @@ Preserved as historical context, NOT the active queue. The active queue is the b
 | `854f8c7` | **(session 6)** intent-015 commit B — NEXT-SESSION.md restructure: header pointers updated to session-6, commit table extended with the four session-6 rows, "Where we are" Net-result paragraph updated (intent-010/intent-013 done → priority queue collapses 7→6; `.tbd/archive/` now exists on disk), priority queue restructured (action-trace.jsonl population promoted to priority 1), session-6 progress block appended per session-5 template. Per-file-per-commit split per session-5 pa-073 first-remedy precedent. |
 | `9e765e2` | **(session 6)** intent-016 — `docs: archive per-session progress into sessions/ + trim NEXT-SESSION.md`. Extracts the inlined Session-1..Session-6 progress/lessons blocks (~165 lines) into dedicated `sessions/session-N.md` files (verbatim move + uniform header schema), moves historical commit-table rows for sessions 1-5 into each session-N.md's commit-chain section, and adds a new compact 'Past sessions' index to NEXT-SESSION.md. Goal: NEXT-SESSION.md becomes a lean resume doc (~150 lines down from ~315). Also adds `sessions/README.md` as a layout description. Five-veto pa-109..pa-115 trail captures a real Mode-A failure mode (declaration-vs-reality drift on full-file Writes); see session-6 follow-on lessons. |
 | `8efe4a2` | **(session 7)** intent-017 — `docs: resolve three deferred `<this commit>` placeholders → 9e765e2`. Three surgical Edits on NEXT-SESSION.md L5/L6/L21 directly applying intent-016's commit-body lesson on declaration-vs-reality drift across pa-109..pa-117 — lesson held: three Edits each cleared first review. ONE FORMAL VETO DISPUTE (first in project history): pa-121 vetoed on declaration-vs-reality drift; navigator misread mid-work-unit `git diff` as the pending Edit's effect rather than pa-120's already-applied effect; pilot dissented in dissent-log.jsonl 22:38Z; navigator re-reviewed against working-tree grep and lifted, logging retro note: `git diff at Edit-stage shows cumulative effect of cleared-and-fired Edits; pending Edits exist only in pa.intent_str until cleared; verification must use grep on working-tree files`. ONE SUBSTRATE ANOMALY: pa-121 archived prematurely during the dispute cycle before its Edit fired — opens Q-041 for intent-019 action-trace design (suspected D-056 carve-out hole or PostToolUse-on-navigator-Edit consuming pilot pa). 6 pa-cycles total (pa-119 declaration → pa-120/pa-122/pa-123 Edits → pa-124 commit → pa-125 push). UX OBSERVATION: pa-NNN identifiers are process-language in Mode A; durable tag-field schema change deferred to Mode B feature work where content-tags would be meaningful. |
+| `0785a38` | **(session 7)** intent-018 — `docs: session-7 close-out — NEXT-SESSION.md + Q-041`. NEXT-SESSION.md restructured with the strategic pivot framing (recursion-break) plus Q-041 row in DESIGN-LOG.md. |
+| `c094246` | **(session 7→8 bridge)** intent-001 — `docs: NEXT-SESSION.md next-session pickup marker`. Added prominent '▶ Next session pickup' marker with /tbd:status walking-skeleton scope, 9-row state-machine, expected-bites list. SECOND Q-041 reproduction observed (pa-006 archived prematurely during navigator review writing dissent-log.jsonl) — narrows the substrate anomaly to "navigator-side writes to .tbd/dissent-log.jsonl during reviews appear to consume the pilot's pending-action." |
+| `10a16cd` | **(session 8)** intent-002 step 1 — `feat: register tbd_status_skill flag`. Inaugurates `.tbd/flags.yaml` as the registry file (first flag in the repo), Layer-1 `flag_system: none` convention encoded (presence of `skills/<name>/SKILL.md` is the gate). Single +14/-0 file. 3 pa-cycles. |
+| `ab15365` | **(session 8)** intent-002 step 2 — `feat: /tbd:status walking-skeleton — SKILL.md + test + flag call_site`. Three files bundled per flag-call-site-registered watch-forward: `skills/status/SKILL.md` (new, 98L; encodes 9-row state-machine + `<unknown>`/`<drifted>` sentinel rule + Next: line), `test/skill/test-status-walking-skeleton.sh` (new, 128L; structural assertions on SKILL.md, GREEN 15/15 PASS exit 0; also echoes 9 human-graded fixture descriptions for dogfood scaffolding), `.tbd/flags.yaml` (+4/-1 call_sites populated). FIVE constituent pa-cycles (pa-012 test create → pa-013 SKILL.md → pa-014 call_sites → pa-017 test row-1 pattern fix → pa-021 test row-4 pattern fix). THREE VETOES dispute-resolved in-session: (1) regex tautology risk on 'relax patterns' narration — lifted with literal before/after + discriminating-test claim; (2) sequencing — test re-run mandatory before next Edit per build-quality-in; (3) small-batches working-tree contamination — lifted with new `working_tree_state` pa-field idiom (navigator suggested canonicalising in a future docs intent). |
+| `<this commit>` | **(session 8)** intent-003 — `docs: session-8 close-out — NEXT-SESSION.md + skill-namespace alignment`. NEXT-SESSION.md restructure (header pointers session-7→session-8, ▶ Next session pickup rewritten to point at intent-004 = counter maintenance, commit table extended with five new rows, Net-result/Decisions/Open-questions paragraphs updated to session-8 outcomes, Past sessions index extended). Bundled `/tbd:` → `/oh-my-tbd:` namespace correction in the state-machine and Future-skills table rows — consistency-with-reality (the actual skills at `skills/start/SKILL.md` L7, `skills/override/SKILL.md` L7, `skills/status/SKILL.md` L7 all use `/oh-my-tbd:`; the old NEXT-SESSION.md tables had docs-drift). FOUR VETOES this work-unit (one held + sustained-then-lifted on the cumulative-diff misread pa-028→pa-029, third occurrence of the pa-121 pattern); navigator pinned this for amplify-learning candidate in principles-additions. |
 
-**Net result:** intent-013 closes the load-bearing substrate-honesty bug-trio that sessions 4–5 mapped (D-057 fixture-vs-reality mismatch, D-058 PostToolUse-fires-only-on-success characterisation, D-056 navigator-bypass symmetry gap). `.tbd/archive/` now exists on disk for the first time across the project's history — production archive-pa fires on real CC payloads. The discipline machinery's CC-event-firing assumptions are now empirically grounded end-to-end AND the implementation matches those assumptions. Plugin still wires correctly (pilot is default main agent; navigator invocable; veto-check fires; D-051/D-056/D-060 substrate carve-outs honoured). The priority queue collapses with intent-010/intent-013 done; **action-trace.jsonl population (was priority 2) is now priority 1**. Intent-014 layered the operating-mode calibration (Mode A bootstrap / Mode B deliverable + four transition criteria) as a project-level lens for the post-substrate-completion phase.
+**Net result:** Session-8 confirms the outside-in pivot works. `/tbd:status` walking-skeleton landed in two commits with the smallest viable scope, the dogfood against real `.tbd/` state surfaced **six concrete bites** (two pre-predicted, four second-order from stale session_id) — each becomes its own narrow intent. The TOP BITE = session-state counter maintenance is pinned for intent-004 (next session). The `working_tree_state` pa-field idiom (surfaced via pa-021 dispute lift) is a durable contribution beyond intent-002's declared scope, worth canonicalising in `principles-additions.md`. Mode A discipline held end-to-end: 15 pa-cycles inside intent-002, four veto disputes inside intent-003, every veto either lifted with revision or sustained-with-corrective-action. NEW EMPIRICAL DATUM on Q-041: did NOT reproduce in session-8's 15+4 pa-cycles — pattern narrowed (no longer "every dissent-log write"; possibly intermittent or specific to longer pa-chains).
 
-**Decisions added this session:** D-060 (archive-pa navigator-agent-type carve-out, D-056 symmetry partner; ratifies dd03552 change 4 on the design record; empirical basis pa-082/083/086 consumed by their own navigator reviews visible in `.tbd/archive/s-2026-05-20-001/`; fails-closed degraded-but-not-broken if `agent_type` missing).
+**Decisions added this session:** None pinned to DESIGN-LOG.md. Session-8 produced the `working_tree_state` pa-disclosure convention as informal precedent; ratification deferred to its own future docs intent.
 
-**Open questions opened this session:** None. Intent-015 is pure ratification of intent-013's already-landed implementation; no new design uncertainty surfaced. Q-039 and Q-040 remain open from session 5.
+**Open questions opened this session:** None new. Q-039, Q-040, Q-041 remain open from prior sessions.
 
 ---
 
