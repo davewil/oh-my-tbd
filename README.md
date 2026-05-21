@@ -13,7 +13,6 @@ A Claude Code plugin that brings Trunk-Based Development discipline and rigour t
   - Batch size exceeded
   - Non-interaction criterion unmet for a feature commit without a registered flag
   - Standing navigator veto
-- **Override** is the explicit human escape, audited in `.tbd/overrides.jsonl`.
 
 ## Design docs
 
@@ -36,7 +35,7 @@ The first few commits before the minimum loop is real are exempt; this exemption
 claude --plugin-dir .
 ```
 
-The plugin loads namespaced as `oh-my-tbd`. Skills appear as `/oh-my-tbd:start` and `/oh-my-tbd:override`. Agents appear in `/agents` as `pilot` and `navigator`.
+The plugin loads namespaced as `oh-my-tbd`. Skills appear as `/oh-my-tbd:start`. Agents appear in `/agents` as `pilot` and `navigator`.
 
 Verify the bootstrap:
 
