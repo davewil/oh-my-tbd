@@ -2,8 +2,8 @@
 
 Working notes for resuming after a session restart. Read this first.
 
-- **Last session ended:** 2026-05-22 session-11 — **post-reset docs rewrite complete**. 7 slices shipped (1 → 7). The four design docs now match what's on disk; the architectural reset is fully reflected in both code and prose.
-- **Trunk state:** main at `1c7a86e`, pushed to origin.
+- **Last session ended:** 2026-05-22 session-11 — **post-reset docs rewrite complete**. 9 slices shipped (1 → 9). The four design docs *plus* `principles/principles.md` now match what's on disk; the architectural reset is fully reflected in both code and prose.
+- **Trunk state:** main at `e09eb42` (slice 8 — principles.md rewrite). Slice 9 patches this hand-off doc.
 - **Repo:** `/Volumes/Personal/Users/davidwilliams/dev/trunk/`
 
 ---
@@ -39,7 +39,7 @@ Notes go in the conversation; commit messages carry the narrative; `git log` is 
 
 ## What shipped this session
 
-7 slices, all on `origin/main`:
+9 slices, all on `origin/main`:
 
 | # | Commit | Type | Slice | Net |
 |---|---|---|---|---|
@@ -49,15 +49,22 @@ Notes go in the conversation; commit messages carry the narrative; `git log` is 
 | 4 | `63f574d` | docs | `DESIGN-LOG.md` annotated supersedence per (r2) — fresh top section + ~28 superseded IDs | +94 |
 | 5 | `9fa8314` | docs | Cross-doc-link sweep: pilot.md filename alignment + README status polish + NEXT-SESSION reading-order fix | 0 |
 | 6 | `1c7a86e` | chore | Delete orphan `test/skill/test-status-walking-skeleton.sh` | -128 |
-| 7 | _(this commit)_ | docs | NEXT-SESSION.md close-out for session-12 pickup | ~ |
+| 7 | `3cc7c80` | docs | NEXT-SESSION.md close-out (initial, since patched in slice 9) | -57 |
+| 8 | `e09eb42` | docs | Rewrite `principles/principles.md` as reference reading (280 → 178 lines) | -102 |
+| 9 | _(this commit)_ | docs | Patch NEXT-SESSION.md close-out to reflect slice 8 | ~ |
 
-**Total: ~-790 lines from this session.** Combined with sessions 9+10 (~-1,800 from the reset), the project is roughly **-2,600 lines** lighter than its pre-reset peak, while now describing what's actually shipped.
+**Total: ~-950 lines from this session.** Combined with sessions 9+10 (~-1,800 from the reset), the project is roughly **-2,750 lines** lighter than its pre-reset peak, while now describing what's actually shipped.
 
 ### Session-11 character
 
-Quiet flow throughout. Pair (the human) voiced one mild objection at session start (advisor was the surrogate — caught the `.tbd/current-intent` vs. `.tbd/current-intent.json` drift between pilot.md and disk, which slice 5 then resolved). No mixed-concerns issues, no oversized batches, no divergence creeping. Each slice was a single declarable thing, shipped to trunk within a few minutes, behaviour-preserving on the bits that mattered (the safety-hook test stayed GREEN throughout).
+Quiet flow throughout. Two advisor objections that earned their keep:
 
-This is roughly what a healthy post-reset session is supposed to look like.
+1. At session start the advisor caught the `.tbd/current-intent` (no extension) vs. `.tbd/current-intent.json` (actual on-disk name) drift between pilot.md and disk — slice 5 resolved it.
+2. After the apparent close-out (slice 7), the advisor ran a residual-drift check and caught `principles/principles.md` still describing pre-reset rubric machinery (navigator-walks-this, veto.json, action-trace.jsonl, skip-detection, adversarial corpus, L0/L1/L2/L3) despite COMPONENTS.md claiming the file is "reference reading" — slice 8 rewrote it as actual reference reading, and slice 9 patched this hand-off doc to match.
+
+No mixed-concerns issues, no oversized batches, no divergence creeping. Each slice was a single declarable thing, shipped to trunk within a few minutes. The safety-hook regression test stayed GREEN throughout.
+
+The two advisor catches are the most interesting datum from the session: when a session believes it is "done", a residual-drift check against the docs' own claims still found something to fix. That's a reliable signal worth keeping for session-12 onward — apparent done isn't done until the doc-claims-against-disk-content check passes.
 
 ---
 
@@ -100,7 +107,7 @@ Probably yes, plugin earns its keep — worth confirming in DESIGN-LOG as a fres
 1. This file
 2. `README.md` — current user-facing surface (post-reset)
 3. `agents/pilot.md` — the system prompt session-12 loads by default
-4. `git log --oneline -10` — see the 7-slice docs-rewrite session
+4. `git log --oneline -10` — see the 9-slice docs-rewrite session
 5. `COMPONENTS.md`, `SCHEMAS.md`, `VALIDATION.md`, `DESIGN-LOG.md` — the docs now match the code; the post-reset section at the top of `DESIGN-LOG.md` ratifies the session-9 framing
 
 ## Quick-resume commands
@@ -119,7 +126,7 @@ node bin/tbd.js version                            # should print "oh-my-tbd 0.1
 
 Per (r2): history preserved; supersession explicit.
 
-- **Session 11** (2026-05-22, this session) — **post-reset docs rewrite complete**. 7 slices: COMPONENTS / SCHEMAS / VALIDATION full rewrites, DESIGN-LOG annotated supersedence (session-9 (r2)), cross-doc-link sweep, orphan-test deletion, and this close-out. Docs now match code.
+- **Session 11** (2026-05-22, this session) — **post-reset docs rewrite complete**. 9 slices: COMPONENTS / SCHEMAS / VALIDATION full rewrites, DESIGN-LOG annotated supersedence (session-9 (r2)), cross-doc-link sweep, orphan-test deletion, close-out, principles.md rewrite (advisor-caught residual drift), and this hand-off patch. Docs now match code.
 - **Session 10** (2026-05-22) — **architectural-reset thinning complete**. 8 slices: pilot.md rewrite + Validating-the-discipline section + pair stub + **hook collapse to s3 (the pivotal slice)** + delete navigator + delete dead skills + delete runtime files + README cleanup with stale-notice headers on the three docs deferred to session-11.
 - **Session 9** (2026-05-21) — **architectural reset**. Values-pass produced (b2)+(b3)+per-turn+tiny-note+(s3)+(f1)+(r2)+(c2). Slices 1+2 shipped: `804065a` (counter machinery removed) and `cc63d72` (README override refs).
 - **[Session 8](sessions/session-8.md)** (2026-05-21) — `/oh-my-tbd:status` walking-skeleton landed. Intent-005 (discuss-skill) started but step 2 deferred; **now superseded by session-9 reset**.
