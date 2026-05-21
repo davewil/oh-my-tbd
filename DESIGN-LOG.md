@@ -4,14 +4,65 @@ Living document for the Trunk-Based Development customisation suite for Claude C
 Captures pinned design decisions and open questions during the discussion phase.
 Once implementation begins, major architectural commitments will split into ADRs.
 
-- **Status:** discussion phase
+- **Status:** post-reset (session-9, 2026-05-21). Most of the pre-reset gatekeeper architecture is superseded — see the section directly below. The original pinned-decisions table is preserved verbatim further down for historical audit; the "Decisions superseded" table records the explicit supersession for every retired ID.
 - **Started:** 2026-05-19
 - **Working dir:** `/Volumes/Personal/Users/davidwilliams/dev/trunk`
 - **Cross-conversation context:** see `~/.claude/projects/-Volumes-Personal-Users-davidwilliams-dev-trunk/memory/`
 
 ---
 
+## Post-reset architecture (session-9, 2026-05-21)
+
+Session-9 ran a values-pass against the pre-reset design and produced an architectural reset. The gatekeeper machinery (navigator subagent + pa-coordination + dissent log + ~9 hooks + ~12 skills + adversarial corpus + L2 reachability adapters) was retired in favour of a thin XP-prompt + narrow-safety-hook + a stub for a deferred sidecar. Slices 3–10 (sessions 9+10) deleted ~1,800 lines of code, prompts, schemas, runtime files, and obsolete docs/skills.
+
+This section ratifies the post-reset framing. Per the **(r2) annotated-supersedence** decision, the original pinned decisions remain in their table below; each superseded ID has a row in the "Decisions superseded" table pointing back here.
+
+### The five-value frame
+
+The discipline reads against XP's five values:
+
+- **Communication** — the discipline lives in conversation, not in a courthouse. The pair voices objections in chat; the pilot engages with them; the human resolves disagreements.
+- **Simplicity** — the plugin is a system prompt + a fat-finger guard hook + a stub. Three components total. YAGNI applies to all additions.
+- **Feedback** — `git log`, `git reflog`, and the conversation transcript are the audit trail. No jsonl ledger.
+- **Courage** — willingness to delete machinery that wasn't earning its keep. Session-9 deleted ~1,800 lines without trying to salvage them.
+- **Respect** — the pilot doesn't argue past the pair; the pair doesn't refuse keystrokes. Both presume the other is acting in good faith.
+
+### The eight structural decisions (session-9)
+
+| Tag | Decision | Replaces |
+|---|---|---|
+| `(b2)` | **Sidecar mechanism deferred.** The pair voice will eventually be wired as either a hook-emitted prompt or a same-context persona switch — both are option (ii) from the session-9 framing. Until then: stub at `skills/pair/SKILL.md`. | The pre-reset navigator-subagent shape (D-008, D-011, D-014–D-026, D-033, D-035) |
+| `(b3)` | **Human acts as the pair on request.** Triggered explicitly by `/oh-my-tbd:pair`. The four pair objections (missing test, oversized batch, divergence-age, mixed concerns) come from the human in chat until a sidecar lands. | Autonomous pilot/navigator pair (D-008, D-010) |
+| `per-turn cadence` | **Pair objections happen per-turn in chat, not via filesystem.** No pending-action.json, no veto.json, no dissent-log.jsonl. | Filesystem message bus (D-014, D-018, D-040, D-043, D-051, D-052, D-056, D-060) |
+| `tiny-note intent` | **Intent is a one-line sticky note** at `.tbd/current-intent.json` — gitignored, conversational. Type + description; nothing reads it mechanically. | Schema-validated, pa-coordinated intent declaration (D-040, D-043, D-044) |
+| `(s3)` | **Safety is narrow.** One PreToolUse hook refuses three operations on trunk: `git push --force`, `git reset --hard`, `git branch -D <trunk>`. Everything else is conversation. | Hard-blocks model (D-002, D-014, D-027, D-029, D-030, D-034, D-043) |
+| `(f1)` | **Drop counters and metrics.** No veto rate, no override rate, no corpus detection rate, no principle coverage. Validation is human-judged dogfood + one hook test. | Measurement-first (D-025) |
+| `(r2)` | **Annotated supersedence.** History preserved verbatim; superseded entries marked with forward pointers in the "Decisions superseded" table. This document follows that rule. | Silent rewrite of historical decisions |
+| `(c2)` | **Incremental deletion.** Each slice ships to trunk as a small commit, behaviour-preserving where possible; the architecture reset was eight separate commits, not a single big-bang. | Long-running deletion branches |
+
+### The three-category split
+
+The session-9 reset split the original "TBD discipline" surface into three categories with very different mechanisms:
+
+- **Discipline** — *conversational*. Lives in the pilot prompt and the pair's voice in chat. No filesystem state, no refusals. Examples: small-batches, test-first, refactor-as-first-class-commit, YAGNI, divergence-age awareness.
+- **Safety** — *mechanical*. Lives in the one PreToolUse hook. Refuses only the three irrecoverable git operations on trunk. Examples: `git push --force` on trunk, `git reset --hard` on trunk, `git branch -D <trunk>`.
+- **Audit** — *git log + reflog + conversation transcript*. No separate ledger. The git history is the archive; the conversation is the rationale; the reflog catches the chainsaw operations the hook missed.
+
+The pre-reset design tried to mechanise all three categories. The reset's central bet is that conversational discipline + mechanical safety + git-native audit is sufficient — and that the mechanisation of conversational discipline is what produced the ceremony tax.
+
+### The dogfood meta-finding that motivated the reset
+
+Sessions 1–2 dogfood produced a striking finding: **every navigator veto was substantively valid AND cost ~10 minutes of round-trip ceremony per cycle** (pa.json write, navigator subagent invocation, dissent-log append, veto.json read/clear, pending-action archive). The vetoes were catching real issues; the ceremony cost of catching them via filesystem-mediated subagent coordination exceeded the cost of catching them via conversation.
+
+That asymmetry made the gatekeeper shape a category error: the discipline being upheld was XP, which has always been a conversational practice; mechanising it produced a courthouse, not a pair. The conversational form is cheaper, faster, and culturally honest to the practice. The mechanical hook is reserved for the narrow class of actions where conversation cannot recover from a mistake — i.e., irrecoverable git history rewrites.
+
+This finding is the load-bearing rationale for the eight decisions above.
+
+---
+
 ## Pinned decisions
+
+The table below is preserved verbatim from the pre-reset design. Most entries D-008 through D-060 are superseded by the session-9 reset; the explicit per-ID supersession lives in the "Decisions superseded" table further down. Read this section as historical audit, not as current architecture.
 
 | ID | Date | Decision | Source |
 |----|------|----------|--------|
@@ -110,10 +161,53 @@ Once implementation begins, major architectural commitments will split into ADRs
 
 ## Decisions superseded
 
+The first two rows record pre-reset intra-design supersessions. Everything below `--- session-9 reset ---` is superseded by the session-9 architectural reset; see the "Post-reset architecture" section near the top of this document for the replacement framing. The short reason in each row points at which post-reset mechanism (the pilot prompt, the s3 safety hook, the conversational pair, the git-native audit trail) absorbed the responsibility, or notes that the responsibility was deleted as YAGNI.
+
 | ID | Original | Superseded by | When | Why |
 |----|----------|---------------|------|-----|
 | D-015 | Synchronous hook-driven navigator invocation (Option A) | D-033 | 2026-05-19 | Claude Code hooks cannot multi-turn-invoke subagents. Pilot must invoke navigator directly via Agent tool. |
 | D-013 | "PR branches with hard lifetime cap as default trunk model" | D-050 | 2026-05-20 | "Branch" is a special case of divergence. The primitive is divergence age across all sources (branch + WIP + stash); branched vs. direct-to-trunk is a UX choice within that discipline. |
+| | *--- session-9 reset (2026-05-21) ---* | | | |
+| D-002 | Strictness model: hard blocks; violations refuse the action and require explicit override | Session-9 `(s3)` | 2026-05-21 | Hard-blocks replaced by narrow safety hook. The three chainsaw operations refuse on trunk; everything else is conversation. |
+| D-008 | Autonomous mode = pilot/navigator agent pair with periodic role swap | Session-9 `(b2)` + `(b3)` | 2026-05-21 | Navigator subagent deleted. Pair voice deferred (sidecar mechanism TBD); human acts as pair on request. |
+| D-010 | Mob configurations supported (2 humans + agent, 1 human + pilot/navigator, 2-agent autonomous) | Session-9 `(b3)` | 2026-05-21 | Pilot/navigator pair shape retired; mob configurations remain at the human-process level, not in the plugin. |
+| D-011 | Navigator tool allowlist (read tools + writes restricted to `.tbd/`) | Session-9 `(b2)` | 2026-05-21 | No navigator subagent exists. The pilot has full tools; the (deferred) sidecar will be advisory, not tool-restricted. |
+| D-012 | TDD upheld by navigator checklist | Pilot prompt §"The practice" | 2026-05-21 | Test-first coaching moved into `agents/pilot.md` directly. No navigator to checklist against. |
+| D-014 | Navigator veto mechanical via `.tbd/veto.json` | Session-9 `(s3)` + per-turn cadence | 2026-05-21 | Veto file deleted. Pair objections happen in chat; safety refuses live in the hook. |
+| D-016 | Refusal messages name the principle | Pilot prompt + pair voice | 2026-05-21 | No refusal machinery to name principles in. Pair voice cites the relevant practice when it objects in chat. |
+| D-017 | Handoff artifact at every role swap (`.tbd/handoff-<n>.json`) | Deleted as YAGNI | 2026-05-21 | No role swaps; `.tbd/current-intent.json` carries continuity across sessions. |
+| D-018 | Dissent log is the Kaizen surface | git log + conversation transcript | 2026-05-21 | The transcript IS the dissent record. `git log` carries the decisions. No jsonl ledger. |
+| D-019 | Model effort tiers (low/standard/high navigator+pilot pairing) | Session-9 `(b2)` | 2026-05-21 | No navigator to tier. The pilot runs on whatever Claude Code session-default model is selected. |
+| D-020 | Navigator blind to spec; clarifying-question channel via jsonl | Session-9 `(b2)` | 2026-05-21 | No navigator subagent. The (deferred) sidecar shares the pilot's context by design. |
+| D-021 | Ship adversarial test corpus | Session-9 `(f1)` | 2026-05-21 | No rubric-as-code to regress against. Validation is one hook test + human-judged dogfood. |
+| D-022 | Principle file precedence (library < user < project) | Session-9 `(f1)` | 2026-05-21 | No multi-layer principles loading. `principles/principles.md` is reference reading, not a runtime rubric. |
+| D-023 | Asymmetric prompts (pilot balanced, navigator adversarial) | Session-9 `(b2)` | 2026-05-21 | One prompt only — `agents/pilot.md`. The pair voice is advisory, not adversarial-by-design. |
+| D-024 | Context isolation as primary independence lever | Session-9 `(b2)` | 2026-05-21 | The (deferred) sidecar will share context, not isolate it. Independence comes from posture, not isolation. |
+| D-025 | Measurement is first-class (veto rate, principle diversity, override rate, corpus detection) | Session-9 `(f1)` | 2026-05-21 | All counters retired. Validation surface is one hook test + dogfood. |
+| D-026 | Clarifying-question channel (per-veto / per-session budgets, citation-required) | Session-9 `(b2)` | 2026-05-21 | No filesystem question channel. Pair voice asks in chat, pilot answers in chat. |
+| D-027 | Non-interaction criterion layered (L0+L1+L2+L3) | Session-9 `(s3)` | 2026-05-21 | No mechanical flag-check. Flag policy lives in the pilot prompt and the pair's judgement. |
+| D-028 | L2 reachability adapters shipped in v1 (Python, TS, Go, C#, Elixir) | Session-9 `(s3)` | 2026-05-21 | No L2 to support; the layer is gone. |
+| D-029 | Migrations and deletions never qualify for the no-flag exception | Session-9 `(s3)` | 2026-05-21 | No flag-exception machinery. Practice lives in the pilot prompt. |
+| D-030 | Test-only and docs-only diffs exempt from flag requirement | Session-9 `(s3)` | 2026-05-21 | No flag-check hook. Exemption-by-type is a conversational hint, not a refusal predicate. |
+| D-031 | Pure refactors are a distinct commit category | Pilot prompt §"The practice" | 2026-05-21 | Refactor-as-first-class-commit coaching moved into `agents/pilot.md`. No navigator to verify behaviour preservation. |
+| D-032 | Project entry points declared in `.tbd/entry-points.yaml` | Deleted as YAGNI | 2026-05-21 | No flag-check or reachability machinery to feed. File deleted. |
+| D-033 | Pilot explicitly invokes navigator via the Agent tool | Session-9 `(b2)` | 2026-05-21 | No navigator subagent exists to invoke. |
+| D-034 | Hooks are pure backstop (veto-check, batch-size, divergence-cap) | Session-9 `(s3)` | 2026-05-21 | Only one hook remains: the s3 safety check. Batch-size and divergence-cap are conversational. |
+| D-035 | Role-swap mechanics in v0: fixed agents in autonomous mode | Session-9 `(b3)` | 2026-05-21 | No agent pair to swap. |
+| D-036 | Experimental agent hooks (60s yes/no) for short mechanical checks | Session-9 `(s3)` | 2026-05-21 | No L0/L1/divergence-cap checks to run via agent hooks. |
+| D-038 | CLI implementation: TypeScript → JavaScript via `src/` → `bin/` | Slim CLI in `bin/tbd.js` | 2026-05-21 | `src/` deleted; `bin/tbd.js` is plain Node JS, no compile step. |
+| D-040 | `.tbd/` schema and state machine pinned with JSON Schema validation | Session-9 `tiny-note intent` | 2026-05-21 | No multi-file message bus to validate. `.tbd/current-intent.json` is conversational; `.tbd/flags.yaml` is human-edited. |
+| D-043 | Skip-detection pin (state-changing calls require matching `pending-action.json`) | Session-9 `(s3)` + per-turn cadence | 2026-05-21 | No `pending-action.json` exists. The safety hook checks the bash command directly. |
+| D-044 | Walking skeleton: 5 schemas + 1 veto-check hook + 2 agents + 2 skills | Post-reset inventory | 2026-05-21 | See [COMPONENTS.md](./COMPONENTS.md) for the actual post-reset inventory: pilot.md + pair stub + tbd.js + safety hook + one regression test. |
+| D-051 | `.tbd/` writes bypass the veto-check hook (substrate carve-out) | Session-9 `(s3)` | 2026-05-21 | No veto-check hook to carve out of. |
+| D-052 | `pending-action.json` is single-shot (archived after consumption) | Session-9 `(s3)` | 2026-05-21 | No `pending-action.json` exists. No consumption tracking needed. |
+| D-054 | (Q-033 candidate — pa advisory at hook layer, contractual at navigator layer) | Session-9 `(s3)` | 2026-05-21 | Q-033 closed without ratifying D-054; the reset absorbed both sides of the trade-off by deleting the hook layer it concerned. |
+| D-055 | (Q-034 candidate — soften D-052 to "archive on success" without staleness refusal) | Session-9 `(s3)` | 2026-05-21 | Q-034 closed without ratifying D-055; same rationale as D-054. |
+| D-056 | Navigator subagent calls bypass pa-tool-match check (`agent_type` carve-out in veto-check) | Session-9 `(b2)` | 2026-05-21 | No navigator subagent and no veto-check hook to carve out. |
+| D-057 | archive-pa silent-broken in production since D-052 landed | Session-9 `(s3)` | 2026-05-21 | archive-pa code path deleted along with the rest of the pa-coordination machinery. |
+| D-060 | Navigator subagent calls bypass `runArchivePa` (D-056 symmetry partner) | Session-9 `(b2)` + `(s3)` | 2026-05-21 | No navigator subagent and no `runArchivePa` function. |
+
+Decisions that survived the reset unchanged (NOT in this table because they were not superseded): D-001 (open distribution), D-003 (CI/CD essential — relevant to any project using the plugin), D-004 (feature flags by default — coaching lives in pilot prompt), D-005 (standalone), D-006 (pairing is default — mechanism changed, principle didn't), D-007 (XP/LEAN principles first-class), D-009 (cost not a constraint), D-037 (hooks are thin shell of CLI — the one remaining hook follows this), D-039 (min-deps posture), D-041 (self-dogfood mandate), D-042 (v0 CC-only), D-045 (working name oh-my-tbd), D-046 (plugin spec verified), D-047 (hook exec form), D-048 (JSON output not exit codes), D-049 (pilot activated via settings.json), D-050 (divergence is the primitive), D-053 (discipline is a baseline, not doctrine — explicitly named as the umbrella that motivated the reset), D-058 / D-059 (empirical findings about CC's PostToolUse / PostToolUseFailure firing semantics — still factually true, even though the consumer code was deleted).
 
 ## Resolved questions
 
